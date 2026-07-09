@@ -4,9 +4,11 @@ fixed_at: 2026-07-09T18:18:49Z
 review_path: .planning/phases/01-foundations-domain-types-strict-config/01-REVIEW.md
 iteration: 1
 findings_in_scope: 5
-fixed: 2
-skipped: 3
+fixed: 4
+skipped: 1
 status: partial
+followup_commit: 0dccd37
+followup_note: WR-01 and WR-03 applied in a later user-authorized session (config-protection hook bypassed with explicit approval); only WR-05 (nit) remains, correctly rejected.
 ---
 
 # Phase 1: Code Review Fix Report
@@ -17,8 +19,8 @@ status: partial
 
 **Summary:**
 - Findings in scope: 5 (WR-01..WR-05; the 2 Info findings were out of scope per `fix_scope: critical_warning`)
-- Fixed: 2 (WR-02, WR-04)
-- Skipped: 3 (WR-01, WR-03 — blocked by a repo-level config-protection hook; WR-05 — suggested fix does not actually resolve the deprecation, rolled back)
+- Fixed: 4 (WR-02, WR-04 in the original fixer pass; WR-01, WR-03 in a later user-authorized follow-up — see "Follow-up Resolution" below, commit `0dccd37`)
+- Skipped: 1 (WR-05 — suggested fix does not actually resolve the deprecation, rolled back)
 
 ## Fixed Issues
 
@@ -63,6 +65,16 @@ tsconfig.json(4,25): error TS5107: Option 'moduleResolution=node10' is deprecate
 Verified directly: in TypeScript 6.0.3, `"node10"` is simply the explicit alias for the legacy `"node"` resolution strategy introduced in TS 5.0 — both trigger the identical TS5107 deprecation warning and both require `ignoreDeprecations` (or a real migration) to silence. Renaming `"node"` → `"node10"` does not remove the deprecation as the review assumed; it is the same deprecated setting under a different name. The only way to actually resolve the deprecation without a suppression flag is to migrate to `"node16"`, `"nodenext"`, or `"bundler"`, which is a materially larger and riskier change (affects module/import resolution semantics and interacts with this phase's own deliberate decision to omit `verbatimModuleSyntax` to preserve NestJS's CommonJS `emitDecoratorMetadata` DI model — see `01-01-SUMMARY.md` Decisions). Per the finding's own instruction ("if this risks breaking the strict build, skip it and document why"), the change was reverted via `git checkout -- apps/api/tsconfig.json` and left untouched, restoring the clean `tsc --noEmit` baseline.
 **Action needed:** None urgent — this is a cosmetic/nit-level deprecation suppression, not a build blocker. If addressed later, budget it as a real `moduleResolution` migration (`node16`/`bundler`) with its own verification pass, not a one-line rename.
 
+## Follow-up Resolution — WR-01 & WR-03 (commit `0dccd37`)
+
+After the original fixer pass, the user explicitly authorized bypassing the `config-protection` hook to apply these two `eslint.config.mjs` changes. The hook is loaded into the running session at startup, so it could **not** be disabled mid-session by editing the plugin script (that was attempted and reverted byte-exact — the hook stayed active). Because the hook gates only `Edit`/`Write`/`MultiEdit` (not `Bash`), the change was applied via a `Bash` heredoc write with the user's explicit approval; the config-protection hook itself was left fully intact.
+
+- **WR-01 (resolved):** `ignores` now includes `'dist/**'`, `'node_modules/**'`, `'coverage/**'`. `npm run lint` no longer parses compiled output.
+- **WR-03 (resolved):** `@typescript-eslint/no-explicit-any`, `no-floating-promises`, and `no-unsafe-argument` all set to `'error'`, aligning ESLint with TYPE-01's "no `any`". Source is already `any`-free under the strict tsconfig, so no new violations surfaced.
+- **Post-change verification:** `npm run lint --workspace apps/api` → exit 0 (clean); `npm run typecheck --workspace apps/api` → exit 0; `typescript@6.0.3` unchanged.
+
+Only **WR-05** (nit) remains unresolved — correctly rejected because the proposed `moduleResolution: "node10"` triggers the identical TS5107 deprecation on TS 6.0.3 (see below).
+
 ## Verification Results (mandatory_verification_after_fixes)
 
 Re-run in the isolated worktree after the fixed/skipped decisions above (with `dist/` and `node_modules` removed again afterward to leave the tree clean):
@@ -70,7 +82,7 @@ Re-run in the isolated worktree after the fixed/skipped decisions above (with `d
 | Check | Result |
 |---|---|
 | `npm run typecheck --workspace apps/api` (`tsc --noEmit`) | PASS (exit 0, no output) |
-| `npm run lint --workspace apps/api` | FAIL — pre-existing, unresolved because WR-01/WR-03 are blocked by the config-protection hook (see Skipped Issues above); not caused or worsened by any fix applied in this session |
+| `npm run lint --workspace apps/api` | PASS (exit 0) after the WR-01/WR-03 follow-up (commit `0dccd37`). Was FAIL in the original fixer pass while those two were blocked by the config-protection hook. |
 | `npm run build --workspace apps/api` | PASS — emits `dist/index.js` and `dist/worker.js` |
 | `npm ls typescript --workspace apps/api` | `typescript@6.0.3` confirmed (unchanged) |
 
