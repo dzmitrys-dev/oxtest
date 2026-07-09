@@ -49,7 +49,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Type Safety (TYPE)
 
-- [ ] **TYPE-01**: `tsconfig` is strict (`strict: true`, `noUncheckedIndexedAccess`) and the codebase contains no `any` on scan-result handling paths
+- [x] **TYPE-01**: `tsconfig` is strict (`strict: true`, `noUncheckedIndexedAccess`) and the codebase contains no `any` on scan-result handling paths
 - [ ] **TYPE-02**: Trivy report shapes and domain models (`Scan`, `Vulnerability`, status enum) are expressed as explicit TypeScript types/interfaces; GraphQL `@ObjectType()` classes double as typed domain models
 
 ### API Surface (API)
@@ -135,7 +135,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ERR-03 | Phase 3 | Pending |
 | ERR-04 | Phase 3 | Pending |
 | ERR-05 | Phase 4 | Pending |
-| TYPE-01 | Phase 1 | Pending |
+| TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Pending |
 | API-01 | Phase 4 | Pending |
 | API-02 | Phase 4 | Pending |
@@ -152,6 +152,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | DOC-02 | Phase 6 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 40 total (the earlier "39" header was a miscount — there are 40 distinct requirement IDs)
 - Mapped to phases: 40 (100%)
 - Unmapped: 0

@@ -34,10 +34,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Booting with a missing/invalid required env var exits non-zero with a clear Joi validation message; booting with valid config starts cleanly
   4. Domain models (`Scan`, `Vulnerability`, `ScanStatus` enum) and the Trivy report shape exist as explicit TypeScript interfaces used across layers
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Monorepo scaffold, NestJS 11 + Fastify adapter, strict TypeScript (TS 6.0.3 pin) [TYPE-01]
+- [x] 01-01-PLAN.md — Monorepo scaffold, NestJS 11 + Fastify adapter, strict TypeScript (TS 6.0.3 pin) [TYPE-01]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations, Domain Types & Strict Config | 0/2 | Not started | - |
+| 1. Foundations, Domain Types & Strict Config | 1/2 | In Progress|  |
 | 2. Streaming Parse Pipeline & Memory Proof | 0/TBD | Not started | - |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |
