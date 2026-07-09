@@ -86,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after initialization*
+*Last updated: 2026-07-09 — Phase 1 (Foundations, Domain Types & Strict Config) complete: npm-workspaces monorepo, strict NestJS 11 / Fastify skeleton, two-entrypoint topology (AppModule + WorkerModule sharing ScanModule), fail-fast Joi config validation, and framework-free domain types (Scan / Vulnerability / ScanStatus + minimal Trivy report shape). Requirements TYPE-01, TYPE-02, ARCH-04, OPS-03 validated (see REQUIREMENTS.md). Next: Phase 2 (streaming parse pipeline & memory proof).*
