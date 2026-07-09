@@ -15,7 +15,7 @@
     "dev:api": "tsx watch src/index.ts",
     "dev:worker": "tsx watch src/worker.ts",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.ts\""
   },

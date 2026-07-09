@@ -82,7 +82,7 @@ None yet.
 - Coverage count corrected: REQUIREMENTS.md header said 39 v1 requirements but there are 40 distinct IDs — all 40 are mapped; count updated to 40 in the traceability section
 - Phase 2 research flag: stream-json's exact nested `pick`/`streamArray` composition for Trivy's `Results[].Vulnerabilities` shape is under-documented — validate against a small hand-crafted fixture before scaling to 500MB
 - Phase 5 research flag: Node/V8 heap-size vs Docker `mem_limit` ratio must be empirically tuned against the largest fixture in-container, not just the bare-node self-test
-- npm test aborts: @swc/core@1.15.43 + miette@7.6.0 native panic under jest on Node 24 — resolve via @swc/core npm override before real tests land
+- [Updated 01-REVIEW-FIX, iteration 1] `npm test` no longer fails trivially: `--passWithNoTests` added to the jest script (WR-04) since Plan 02 Task 3 deleted the only spec file and none replaced it, so the previously-documented "no tests found" exit-1 is resolved. The underlying `@swc/core@1.15.43` + `miette@7.6.0` native panic under jest is CONFIRMED STILL REPRODUCIBLE (re-verified with a throwaway smoke spec in the review-fix session) but only on Node 24 (the available sandbox runtime) — it remains UNVERIFIED against the project's actually-pinned Node 22 runtime (`engines: ">=22 <23"` in apps/api/package.json), since no Node 22 install was available to test against. Must be re-verified on Node 22 and resolved via an `@swc/core` npm `overrides` pin (or reproduced/re-diagnosed on the pinned runtime) before Phase 2 adds any real `.spec.ts` file.
 
 ## Deferred Items
 
