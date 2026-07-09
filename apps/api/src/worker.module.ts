@@ -4,8 +4,11 @@ import { envValidationSchema } from './config/env.validation';
 import { ScanModule } from './scan/scan.module';
 
 /**
- * API-side root module. HTTP transport/GraphQL are added in Phase 4 —
- * none here yet.
+ * Worker-side root module. Imports the IDENTICAL ConfigModule + ScanModule
+ * as AppModule but NEVER any HTTP/GraphQL module (D-06 dead-heap and
+ * dead-attack-surface guard) — a standalone application context has no
+ * HTTP request lifecycle, so any HTTP/GraphQL module here would be inert
+ * and wasteful.
  */
 @Module({
   imports: [
@@ -16,4 +19,4 @@ import { ScanModule } from './scan/scan.module';
     ScanModule,
   ],
 })
-export class AppModule {}
+export class WorkerModule {}
