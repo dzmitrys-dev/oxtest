@@ -10,6 +10,12 @@ async function bootstrap(): Promise<void> {
     AppModule,
     new FastifyAdapter(),
   );
+  app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  console.log('API HTTP listener ready');
 }
-void bootstrap();
+
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
