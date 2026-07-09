@@ -30,7 +30,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. `dist/index.js` boots an HTTP API and `dist/worker.js` boots a worker-only application context with no HTTP listener, both importing the shared `ScanModule`
   3. Booting with a missing/invalid required env var exits non-zero with a clear Joi validation message; booting with valid config starts cleanly
   4. Domain models (`Scan`, `Vulnerability`, `ScanStatus` enum) and the Trivy report shape exist as explicit TypeScript interfaces used across layers
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 01-01-PLAN.md — Monorepo scaffold, NestJS 11 + Fastify adapter, strict TypeScript (TS 6.0.3 pin) [TYPE-01]
+- [ ] 01-02-PLAN.md — Domain types, two-entrypoint topology (shared ScanModule), fail-fast Joi env validation [TYPE-02, ARCH-04, OPS-03]
 
 ### Phase 2: Streaming Parse Pipeline & Memory Proof
 **Goal**: The stream-json parse pipeline extracts CRITICAL-only vulnerabilities from a 500MB+ Trivy report under a 150MB heap — proven in isolation and gated in CI — before any queue/HTTP plumbing exists.
@@ -84,7 +86,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Depends on**: Phase 5
 **Requirements**: FE-01, FE-02, FE-03, DOC-01, DOC-02
 **Success Criteria** (what must be TRUE):
-  1. The React (Vite) app accepts a GitHub repo URL and a Start button that submits a scan
+  1. The React (Vite) app accepts a GitHub repo URL and a Start button that submits a scan + tailwind+daisyui
   2. While a scan is in progress the app polls the status endpoint every 2 seconds and shows the current state
   3. On `Finished` the app displays the CRITICAL vulnerabilities; on `Failed` it shows an error state
   4. `README.md` gives copy-paste run instructions (local dev + docker-compose), the memory self-test command, and an architecture overview
@@ -99,7 +101,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations, Domain Types & Strict Config | 0/TBD | Not started | - |
+| 1. Foundations, Domain Types & Strict Config | 0/2 | Not started | - |
 | 2. Streaming Parse Pipeline & Memory Proof | 0/TBD | Not started | - |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |
