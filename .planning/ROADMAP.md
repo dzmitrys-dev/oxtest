@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations, Domain Types & Strict Config | 2/2 | Complete   | 2026-07-09 |
+| 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 0/TBD | Not started | - |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |
