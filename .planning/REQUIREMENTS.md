@@ -106,17 +106,58 @@ Deferred — acknowledged but not in this submission's roadmap.
 
 ## Traceability
 
-Populated during roadmap creation.
+Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for phase detail.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be filled by roadmapper) | — | Pending |
+| SCAN-01 | Phase 4 | Pending |
+| SCAN-02 | Phase 4 | Pending |
+| SCAN-03 | Phase 4 | Pending |
+| SCAN-04 | Phase 4 | Pending |
+| SCAN-05 | Phase 4 | Pending |
+| ENGINE-01 | Phase 3 | Pending |
+| ENGINE-02 | Phase 3 | Pending |
+| ENGINE-03 | Phase 3 | Pending |
+| ENGINE-04 | Phase 3 | Pending |
+| ENGINE-05 | Phase 2 | Pending |
+| ENGINE-06 | Phase 3 | Pending |
+| ENGINE-07 | Phase 3 | Pending |
+| MEM-01 | Phase 2 | Pending |
+| MEM-02 | Phase 2 | Pending |
+| MEM-03 | Phase 2 | Pending |
+| MEM-04 | Phase 2 | Pending |
+| ARCH-01 | Phase 4 | Pending |
+| ARCH-02 | Phase 3 | Pending |
+| ARCH-03 | Phase 3 | Pending |
+| ARCH-04 | Phase 1 | Pending |
+| ERR-01 | Phase 3 | Pending |
+| ERR-02 | Phase 3 | Pending |
+| ERR-03 | Phase 3 | Pending |
+| ERR-04 | Phase 3 | Pending |
+| ERR-05 | Phase 4 | Pending |
+| TYPE-01 | Phase 1 | Pending |
+| TYPE-02 | Phase 1 | Pending |
+| API-01 | Phase 4 | Pending |
+| API-02 | Phase 4 | Pending |
+| API-03 | Phase 4 | Pending |
+| FE-01 | Phase 6 | Pending |
+| FE-02 | Phase 6 | Pending |
+| FE-03 | Phase 6 | Pending |
+| OPS-01 | Phase 5 | Pending |
+| OPS-02 | Phase 5 | Pending |
+| OPS-03 | Phase 1 | Pending |
+| OPS-04 | Phase 5 | Pending |
+| OPS-05 | Phase 5 | Pending |
+| DOC-01 | Phase 6 | Pending |
+| DOC-02 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 39 total
-- Mapped to phases: (pending roadmap)
-- Unmapped: (pending roadmap)
+- v1 requirements: 40 total (the earlier "39" header was a miscount — there are 40 distinct requirement IDs)
+- Mapped to phases: 40 (100%)
+- Unmapped: 0
+
+**Per-phase counts:** Phase 1 → 4, Phase 2 → 5, Phase 3 → 12, Phase 4 → 10, Phase 5 → 4, Phase 6 → 5.
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after initial definition*
+*Last updated: 2026-07-09 after roadmap creation (traceability + coverage populated)*
