@@ -440,14 +440,14 @@ export interface TrivyVulnerability {
 
 **If this table is empty:** N/A — see entries above; all three are low-risk, defensively-handled, or easily re-verified with a one-line grep/test during planning.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should `ts-jest` or `@swc/jest` be the actual Jest transform for this phase's (minimal) tests?**
+1. **RESOLVED (Q1): Use `@swc/jest` as the Jest transform (`"transform": { "^.+\\.(t|j)sx?$": ["@swc/jest"] }`), remove `ts-jest`, and treat `tsc --noEmit` (`npm run typecheck`) as the authoritative TYPE-01 type gate run independently of `npm test`.** — Original question: should `ts-jest` or `@swc/jest` be the actual Jest transform for this phase's (minimal) tests?**
    - What we know: Both are peer-compatible with TypeScript 6.0.3; CONTEXT.md's discretion note prefers `@swc/jest` for speed.
    - What's unclear: `@swc/jest` skips type-checking during test transform, meaning a test file with a type error could still run — TYPE-01's "zero `tsc --noEmit` errors" gate is the actual enforcement point, so this is likely fine, but the planner should make explicit that `tsc --noEmit` (not the test runner) is the type-safety gate.
    - Recommendation: Use `@swc/jest` per CONTEXT.md discretion; add a CI/verification step note that `tsc --noEmit` runs independently of `npm test`.
 
-2. **Exact required env var list beyond the minimum CONTEXT.md names (`REDIS_HOST`, `REDIS_PORT`, `PORT`, a workspace/temp dir, Trivy-mode toggle)?**
+2. **RESOLVED (Q2): Define the full env schema now — `NODE_ENV`, `PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCAN_TMP_DIR`, `TRIVY_MODE` — with connectivity-critical keys (`REDIS_HOST`, `REDIS_PORT`, `SCAN_TMP_DIR`) marked `.required()` (no default), and ship a committed `.env.example` with safe local defaults.** — Original question: exact required env var list beyond the minimum CONTEXT.md names (`REDIS_HOST`, `REDIS_PORT`, `PORT`, a workspace/temp dir, Trivy-mode toggle)?**
    - What we know: CONTEXT.md leaves this to planner discretion; later phases (3, 4) will need `REDIS_HOST`/`REDIS_PORT` for BullMQ/ioredis and a temp-dir base for `RepoCloner`.
    - What's unclear: Whether to require these now (Phase 1) even though nothing consumes them yet, versus a minimal Phase-1-only schema (`PORT`, `NODE_ENV`) extended in Phase 3/4.
    - Recommendation: Define the full Joi schema now (all names CONTEXT.md lists) even though only `PORT`/`NODE_ENV` are consumed by Phase-1 skeleton code — this proves the fail-fast mechanism end-to-end against the real eventual env surface and avoids a schema-migration task later. Provide a `.env.example` with all keys and safe local defaults (`REDIS_HOST=localhost`, `REDIS_PORT=6379`, `SCAN_TMP_DIR=/tmp/scans`, `TRIVY_MODE=binary`) so `docker-compose`/local dev isn't blocked before Phase 3 exists.
