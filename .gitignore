@@ -104,6 +104,9 @@ dist
 # vitepress cache directory
 **/.vitepress/cache
 
+# Generated large streaming-parser fixtures (keep known-severity-mix.json tracked)
+apps/api/fixtures/generated-*.json
+
 # Docusaurus cache and generated files
 .docusaurus
 
