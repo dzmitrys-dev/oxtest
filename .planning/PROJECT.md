@@ -52,7 +52,7 @@ The service must process a 500MB+ Trivy JSON report without OOM under `node --ma
 
 - **Memory**: 256MB RAM assumption; self-test at 150MB heap; Docker `mem_limit: 200m` — the defining constraint of the whole design
 - **Forbidden APIs**: `fs.readFile` and `JSON.parse` on scan results — must use Node.js streams (stream-json or bfj)
-- **Tech stack**: Node.js + TypeScript (implied by assignment: `dist/index.js`, TypeScript interfaces criterion)
+- **Tech stack**: NestJS 11 (TypeScript) on the Fastify adapter — Module/Controller/Provider model directly demonstrates the graded Controller/Service/Worker separation; `@nestjs/bullmq` for the queue, code-first GraphQL via MercuriusDriver, stream-json for parsing. API entry named `src/index.ts` → `dist/index.js` to match the assignment's self-test command verbatim.
 - **Timeline**: 2–3 days to submission
 - **Runnability**: Reviewer must be able to run everything from README alone — docker-compose path must work end-to-end
 
@@ -60,7 +60,9 @@ The service must process a 500MB+ Trivy JSON report without OOM under `node --ma
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| BullMQ + Redis for background jobs | Production-grade queue shows senior-level design: retries, concurrency, restart survival; Redis rides along in docker-compose | — Pending |
+| NestJS 11 on Fastify adapter as the framework | Its Module/Controller/Provider model IS the graded Controller/Service/Worker separation — framework-enforced clean architecture legible to a reviewer at a glance; DI shares one ScanService across REST + GraphQL + worker. Fastify adapter keeps per-request memory lean and pairs with the Mercurius GraphQL driver | — Pending |
+| Two NestJS entrypoints sharing ScanModule | `src/index.ts` (API: `NestFactory.create`+`listen`) and `src/worker.ts` (`createApplicationContext`, no HTTP listener, `@Processor concurrency:1`) — separate docker-compose containers, each memory-sized independently; worker never loads GraphQL/Apollo (dead heap) | — Pending |
+| BullMQ + Redis for background jobs | Production-grade queue shows senior-level design: retries, concurrency, restart survival; Redis rides along in docker-compose. `@nestjs/bullmq` v11 `@Processor`/`WorkerHost` | — Pending |
 | Ship BOTH REST and GraphQL | REST paths are literally specified in core requirements (checklist risk); GraphQL earns Bonus B; same service layer serves both | — Pending |
 | Trivy invocation: auto-detect local binary, fall back to Docker image | Most reviewer-friendly — works whether or not they installed Trivy | — Pending |
 | All three bonuses in scope | User wants best-in-class submission with 2–3 days available | — Pending |

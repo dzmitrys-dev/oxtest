@@ -1,5 +1,10 @@
 # Stack Research
 
+> **⚠ STACK DECISION UPDATE (2026-07-09 — user chose NestJS; supersedes the Fastify-first recommendation below):**
+> Framework is **NestJS 11 on the Fastify adapter**. NestJS's Module/Controller/Provider model *is* the graded Controller/Service/Worker separation (framework-enforced, reviewer-legible); DI shares one `ScanService` across REST + GraphQL + worker. A lean single-module NestJS idles ~35–60MB RSS — acceptable within 200MB container / 150MB heap. Memory pass/fail is still decided by the stream-json `Pick`+`streamArray` strategy, not the framework.
+> Packages: `@nestjs/core`/`@nestjs/common` 11.1.x, `@nestjs/platform-fastify` 11.1.x, `@nestjs/graphql` 13.x + `@nestjs/mercurius` (MercuriusDriver, code-first `autoSchemaFile`), `@nestjs/bullmq` 11.0.x (`@Processor`+`WorkerHost`, `concurrency:1`), `bullmq` 5.79.x, `ioredis` 5.11.x, `stream-json` 3.4.x, `execa`, `@nestjs/config`+Joi, `ValidationPipe`+class-validator, Jest+`@swc/jest`.
+> Two entrypoints share `ScanModule`: `src/index.ts` (API, `NestFactory.create`+`listen`, emits `dist/index.js` to match the self-test) and `src/worker.ts` (`createApplicationContext`, no HTTP, boots `@Processor`). Worker must NOT import GraphQL. Pass `--max-old-space-size=150` explicitly in the worker `CMD` (V8 ignores cgroup at 200m). All stream-json/BullMQ/Trivy/tsconfig detail below stays valid — the HTTP framework wrapper is the only thing that changed.
+
 **Domain:** Memory-constrained Node.js/TypeScript async security-scanner wrapper (Trivy wrapper, senior backend take-home)
 **Researched:** 2026-07-09
 **Confidence:** MEDIUM (web-search cross-checked across multiple independent sources; Context7 MCP was unavailable in this research session — pin exact versions against `npm view <pkg> version` at `npm install` time before submission)

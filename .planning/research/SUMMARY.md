@@ -5,6 +5,15 @@
 **Researched:** 2026-07-09
 **Confidence:** MEDIUM
 
+> **⚠ STACK DECISION UPDATE (2026-07-09, post-synthesis — supersedes framework choice below):**
+> Framework is **NestJS 11 on the Fastify adapter**, not hand-rolled Fastify. Rationale: NestJS's Module/Controller/Provider model *is* the graded Controller/Service/Worker separation, framework-enforced and legible to a reviewer; DI shares one `ScanService` across REST + GraphQL + worker. Verified: lean single-module NestJS idles ~35–60MB RSS (well within the 200MB container / 150MB heap budget — the "170MB" figure is fat TypeORM apps). The memory pass/fail is still won in the stream-json `Pick`+`streamArray` strategy, NOT the framework.
+>
+> Concrete stack: `@nestjs/core` 11.1.x + `@nestjs/platform-fastify` 11.1.x, code-first GraphQL via `@nestjs/graphql` 13.x + **MercuriusDriver** (`@nestjs/mercurius`) on the same Fastify server, `@nestjs/bullmq` 11.0.x (`@Processor`/`WorkerHost`, `concurrency: 1` — mandatory at 200m), `bullmq` 5.79.x, `ioredis` 5.11.x, `stream-json` 3.4.x (+ `@types/stream-json`), `execa` for git/trivy, `@nestjs/config` + Joi env validation, global `ValidationPipe` + class-validator `CreateScanDto` (`@IsUrl` + GitHub-host guard for SSRF/injection), Jest + `@swc/jest` for tests.
+>
+> Topology: **two entrypoints sharing `ScanModule`** — `src/index.ts` (API: `NestFactory.create(AppModule)` + `listen`; emits `dist/index.js` to match the assignment's `node --max-old-space-size=150 dist/index.js` self-test verbatim) and `src/worker.ts` (`NestFactory.createApplicationContext(WorkerModule)`, NO HTTP listener, boots the `@Processor`). Separate docker-compose containers; worker never imports GraphQL/Apollo (dead heap). V8 does NOT honor cgroup limits at 200m → pass `--max-old-space-size=150` explicitly in the worker `CMD`.
+>
+> Everything below about stream-json, BullMQ semantics, Trivy CLI/exit-codes, memory/RSS pitfalls, cleanup, and the 6-phase build order remains valid and framework-agnostic — read "Fastify/Mercurius/ScanService/Worker" as "the NestJS equivalents above."
+
 ## Executive Summary
 
 This is a graded take-home assignment, not a shipped product — so "how experts build it" means "what a senior backend reviewer expects to see." The service accepts a GitHub repo URL, clones it, runs Trivy, and must stream-parse a 500MB+ JSON report to extract only CRITICAL vulnerabilities without ever loading the file into memory, all inside a 150MB V8 heap / 200MB container budget. The consensus recommended stack is Fastify + Mercurius (GraphQL, sharing one process/port) + BullMQ/ioredis for the job queue + stream-json/stream-chain for the parsing pipeline + execa for safe subprocess invocation — chosen specifically because each has a lower memory footprint or more surgical fit than the "heavier" alternative (NestJS, Apollo standalone, JSONStream, raw child_process).
