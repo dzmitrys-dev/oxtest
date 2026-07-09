@@ -13,7 +13,7 @@ Code Guardian is built in horizontal layers, bottom-up. We first lay strict-type
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundations, Domain Types & Strict Config** - Strict-typed NestJS skeleton with two entrypoints and boot-time env validation
+- [x] **Phase 1: Foundations, Domain Types & Strict Config** - Strict-typed NestJS skeleton with two entrypoints and boot-time env validation (completed 2026-07-09)
 - [ ] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI
 - [ ] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup
 - [ ] **Phase 4: REST + GraphQL API Surface** - Submit and poll scans over REST and GraphQL through one shared service, with health and graceful shutdown
@@ -34,14 +34,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Booting with a missing/invalid required env var exits non-zero with a clear Joi validation message; booting with valid config starts cleanly
   4. Domain models (`Scan`, `Vulnerability`, `ScanStatus` enum) and the Trivy report shape exist as explicit TypeScript interfaces used across layers
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 **Wave 1**
 
 - [x] 01-01-PLAN.md — Monorepo scaffold, NestJS 11 + Fastify adapter, strict TypeScript (TS 6.0.3 pin) [TYPE-01]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Domain types, two-entrypoint topology (shared ScanModule), fail-fast Joi env validation [TYPE-02, ARCH-04, OPS-03]
+- [x] 01-02-PLAN.md — Domain types, two-entrypoint topology (shared ScanModule), fail-fast Joi env validation [TYPE-02, ARCH-04, OPS-03]
 
 ### Phase 2: Streaming Parse Pipeline & Memory Proof
 
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations, Domain Types & Strict Config | 1/2 | In Progress|  |
+| 1. Foundations, Domain Types & Strict Config | 2/2 | Complete   | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 0/TBD | Not started | - |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |

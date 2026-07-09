@@ -37,7 +37,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 - [ ] **ARCH-01**: REST controllers and GraphQL resolvers are thin transport adapters containing no business logic — both delegate to a single shared `ScanService`
 - [ ] **ARCH-02**: `ScanService` only orchestrates (enqueue jobs, read status) and never touches `fs` or `child_process` directly
 - [ ] **ARCH-03**: Infrastructure concerns are isolated behind injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
-- [ ] **ARCH-04**: The app has two entrypoints sharing one `ScanModule`: `src/index.ts` (API, HTTP listener → `dist/index.js`) and `src/worker.ts` (worker-only via `createApplicationContext`, no HTTP listener)
+- [x] **ARCH-04**: The app has two entrypoints sharing one `ScanModule`: `src/index.ts` (API, HTTP listener → `dist/index.js`) and `src/worker.ts` (worker-only via `createApplicationContext`, no HTTP listener)
 
 ### Error Handling (ERR)
 
@@ -50,7 +50,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 ### Type Safety (TYPE)
 
 - [x] **TYPE-01**: `tsconfig` is strict (`strict: true`, `noUncheckedIndexedAccess`) and the codebase contains no `any` on scan-result handling paths
-- [ ] **TYPE-02**: Trivy report shapes and domain models (`Scan`, `Vulnerability`, status enum) are expressed as explicit TypeScript types/interfaces; GraphQL `@ObjectType()` classes double as typed domain models
+- [x] **TYPE-02**: Trivy report shapes and domain models (`Scan`, `Vulnerability`, status enum) are expressed as explicit TypeScript types/interfaces; GraphQL `@ObjectType()` classes double as typed domain models
 
 ### API Surface (API)
 
@@ -68,7 +68,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 - [ ] **OPS-01**: `docker-compose.yml` defines `redis`, `api`, and `worker` services; the worker container sets `mem_limit: 200m` and runs `node --max-old-space-size=150 dist/worker.js`
 - [ ] **OPS-02**: The full stack (submit scan → poll → results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install required
-- [ ] **OPS-03**: `.env` configuration is schema-validated at boot (Joi via `@nestjs/config`); the app refuses to start on invalid/missing config
+- [x] **OPS-03**: `.env` configuration is schema-validated at boot (Joi via `@nestjs/config`); the app refuses to start on invalid/missing config
 - [ ] **OPS-04**: Structured logging correlates log lines to a `scanId` across API and worker
 - [ ] **OPS-05**: An automated test suite covers the ReportParser CRITICAL-filter (unit) and the scan API contract (integration); CI runs lint + type-check + tests
 
@@ -129,14 +129,14 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ARCH-01 | Phase 4 | Pending |
 | ARCH-02 | Phase 3 | Pending |
 | ARCH-03 | Phase 3 | Pending |
-| ARCH-04 | Phase 1 | Pending |
+| ARCH-04 | Phase 1 | Complete |
 | ERR-01 | Phase 3 | Pending |
 | ERR-02 | Phase 3 | Pending |
 | ERR-03 | Phase 3 | Pending |
 | ERR-04 | Phase 3 | Pending |
 | ERR-05 | Phase 4 | Pending |
 | TYPE-01 | Phase 1 | Complete |
-| TYPE-02 | Phase 1 | Pending |
+| TYPE-02 | Phase 1 | Complete |
 | API-01 | Phase 4 | Pending |
 | API-02 | Phase 4 | Pending |
 | API-03 | Phase 4 | Pending |
@@ -145,7 +145,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | FE-03 | Phase 6 | Pending |
 | OPS-01 | Phase 5 | Pending |
 | OPS-02 | Phase 5 | Pending |
-| OPS-03 | Phase 1 | Pending |
+| OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 5 | Pending |
 | OPS-05 | Phase 5 | Pending |
 | DOC-01 | Phase 6 | Pending |

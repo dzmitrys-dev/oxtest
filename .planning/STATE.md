@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 01
 current_phase_name: foundations-domain-types-strict-config
-status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-09T17:18:58.447Z"
+status: verifying
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-07-09T17:46:14.984Z"
 last_activity: 2026-07-09
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 17
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 01 (foundations-domain-types-strict-config) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-09 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01 P01 | 35min | 3 tasks | 15 files |
+| Phase 01 P02 | 13 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - Memory pass/fail is won in the stream-json `Pick`+`streamArray` strategy, NOT the framework — prove the parser standalone before any queue/HTTP plumbing (Phase 2)
 - [Phase 01]: Pinned TypeScript exactly to 6.0.3 (not latest 7.0.2, not 5.9.x) for typescript-eslint/ts-jest peer compatibility
 - [Phase 01]: Omitted verbatimModuleSyntax to preserve NestJS CommonJS emitDecoratorMetadata DI model; TYPE-01 met by strict + noUncheckedIndexedAccess
+- [Phase 01]: Env schema keys: NODE_ENV/PORT/TRIVY_MODE have safe defaults; REDIS_HOST/REDIS_PORT/SCAN_TMP_DIR are .required() with no default (ASVS V14.1 fail-closed, threat T-01-02)
+- [Phase 01]: ScanModule (providing/exporting ScanStore) is the shared DI seam consumed identically by AppModule and WorkerModule -- Phase 3 plugs a real ScanRepository into this seam without re-architecting
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T14:20:28.451Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundations-domain-types-strict-config/01-CONTEXT.md
+Last session: 2026-07-09T17:46:14.979Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: None
