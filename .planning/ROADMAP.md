@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup (completed 2026-07-10)
 - [x] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional (completed 2026-07-10)
 - [x] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate (completed 2026-07-10)
-- [ ] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs
+- [x] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs (completed 2026-07-10)
 
 ## Phase Details
 
@@ -158,7 +158,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `README.md` gives copy-paste run instructions, the required memory self-test command, the assignment-level acceptance command, and an architecture overview — and explicitly (a) demonstrates a real functional scan against the forked **OWASP NodeGoat** repository URL (the assignment's setup target), and (b) explains how the PDF's verbatim `node --max-old-space-size=150 dist/index.js` self-test maps onto the two-entrypoint design (the 500MB+ parse runs in the memory-constrained `dist/worker.js`, with a standalone parser self-test as the honest 500MB proof)
   4. `ONBOARDING.md` explains every implemented solution in What / Why / How form — memory strategy, architecture layering, queue design, error handling, and type safety
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 **UI hint**: yes
 
 **Wave 1**
@@ -175,7 +175,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 06-04-PLAN.md — README (compose-first run guide + criterion #3 checklist) and ONBOARDING (What/Why/How + reviewer Q&A) [DOC-01, DOC-02]
+- [x] 06-04-PLAN.md — README (compose-first run guide + criterion #3 checklist) and ONBOARDING (What/Why/How + reviewer Q&A) [DOC-01, DOC-02]
 
 ## Progress
 
@@ -189,4 +189,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
 | 5. Packaging, Ops & Assignment Acceptance | 4/4 | Complete    | 2026-07-10 |
-| 6. Optional Bonuses & Documentation | 3/4 | In Progress|  |
+| 6. Optional Bonuses & Documentation | 4/4 | Complete   | 2026-07-10 |

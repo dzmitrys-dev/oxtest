@@ -4,9 +4,9 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 06
 current_phase_name: Optional Bonuses & Documentation
-status: executing
+status: verifying
 stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-07-10T23:45:37.673Z"
+last_updated: "2026-07-10T23:54:35.647Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 06 execution started
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 06 (Optional Bonuses & Documentation) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-10 — Phase 06 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 06 P01 | 12 | 3 tasks | 8 files |
 | Phase 06 P06-02 | 8min | 3 tasks | 12 files |
 | Phase 06 P06-03 | 32min | 2 tasks | 7 files |
+| Phase 06 P06-04 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-02: api + worker share one code-guardian-app:latest image from the node:22-slim runtime target; differentiated only by per-service command
 - [Phase ?]: 05-03: Docker-free selftest-index-boot.mjs is the authoritative criterion-#5a proof (always-required, no Docker/Redis); acceptance.mjs is the richer Docker-path superset; in-container OOM proof asserts OOMKilled==false AND exit 0
 - [Phase ?]: 06-03: SPA served by API via ServeStaticModule (AppModule-only) at origin root; exclude /api/{*path},/health,/graphql,/graphiql confirmed empirically; boot-safe dist/web keeps criterion #5a green; web build folded into Dockerfile, runtime image web-dep-free.
+- [Phase ?]: 06-04: README is compose-first (docker compose up → redis+api+worker+served UI on :3000), local dev secondary; every cited command is a real script; ASCII architecture (no mermaid); honest index.js-boots-API vs worker.js-500MB-parse self-test mapping; NodeGoat default + substitute-your-fork note
+- [Phase ?]: 06-04: ONBOARDING is the single source of the 'why' — 13 topics as What/Why/How + reviewer Q&A + rejected alternatives; owns the NestJS-vs-Fastify tension and the GraphiQL-introspection + Docker-socket-mount trade-offs; testing section reflects the corrected Jest-landmine root cause (editor buildHook injection) fixed via transformIgnorePatterns + compiled-dist/node:test
 
 ### Pending Todos
 
@@ -133,6 +136,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T23:45:22.860Z
+Last session: 2026-07-10T23:54:00.611Z
 Stopped at: Phase 6 UI-SPEC approved
 Resume file: .planning/phases/06-optional-bonuses-documentation/06-UI-SPEC.md

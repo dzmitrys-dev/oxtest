@@ -74,8 +74,8 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Documentation (DOC)
 
-- [ ] **DOC-01**: `README.md` gives copy-paste run instructions (local dev + docker-compose), the memory self-test command, and architecture overview
-- [ ] **DOC-02**: `ONBOARDING.md` explains every implemented solution in "What / Why / How" form as interview-prep — memory strategy, architecture layering, queue design, error handling, type safety, each anticipating reviewer questions
+- [x] **DOC-01**: `README.md` gives copy-paste run instructions (local dev + docker-compose), the memory self-test command, and architecture overview
+- [x] **DOC-02**: `ONBOARDING.md` explains every implemented solution in "What / Why / How" form as interview-prep — memory strategy, architecture layering, queue design, error handling, type safety, each anticipating reviewer questions
 
 ## v2 Requirements
 
@@ -148,8 +148,8 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 5 | Complete |
 | OPS-05 | Phase 5 | Complete |
-| DOC-01 | Phase 6 | Pending |
-| DOC-02 | Phase 6 | Pending |
+| DOC-01 | Phase 6 | Complete |
+| DOC-02 | Phase 6 | Complete |
 
 **Coverage:**
 
