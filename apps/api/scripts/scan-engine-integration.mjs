@@ -508,3 +508,178 @@ test(
     });
   },
 );
+
+/* ------------------------------------------------------------------------- *
+ * Task 2 — deterministic full-lifecycle FAILURE coverage.
+ *
+ * Each case drives the compiled worker through the Plan 03-owned
+ * `SCAN_ENGINE_TEST_FAULT` adapter-factory seam (env-validated allowlist:
+ * clone | trivy | disk-full | parse) across the REAL worker/BullMQ/Redis
+ * boundary — not by breaking Docker or Redis. Faults run against benign
+ * in-memory doubles (no Docker), so they are fast and deterministic. Each
+ * asserts the exact Queued → Scanning → Failed progression, a bounded/redacted
+ * reason (≤ 500 chars, no uncontrolled paths), original-stage precedence, the
+ * BullMQ job failure rethrow, empty results, and no surviving artifacts.
+ *
+ * The retained Docker success test above is the "findings are a success"
+ * counter-case (Trivy vulnerability findings end Finished, never Failed).
+ *
+ * Two contract nuances are intentionally UNIT-covered (scan-engine.spec.ts),
+ * not integration-reachable through the env-locked seam, and MUST NOT be forced
+ * by editing the Plan 02/03-owned adapter-factory.ts / env.validation.ts:
+ *   - "parser yields one vulnerability THEN rejects": the env `parse` fault
+ *     rejects immediately (before any yield). Both prove the same lifecycle
+ *     invariant (Failed(parse), not Finished, original reason retained, cleanup);
+ *     the mid-stream-yield ordering is unit-covered (spec Test 2b/4).
+ *   - "cleanup failure never masks the original reason": the `cleanup` fault is
+ *     deliberately excluded from the fail-closed env allowlist (unit-only mode),
+ *     so it is unit-covered (spec Test 4d). Integration instead proves primary-
+ *     stage precedence: the persisted category is the ORIGINAL failing stage.
+ * ------------------------------------------------------------------------- */
+
+const FAULT_CASES = [
+  { fault: 'clone', category: 'clone' },
+  { fault: 'trivy', category: 'trivy' },
+  { fault: 'disk-full', category: 'disk-full' },
+  { fault: 'parse', category: 'parse' },
+];
+
+for (const { fault, category } of FAULT_CASES) {
+  test(
+    `failure: injected ${fault} fault yields Queued -> Scanning -> Failed(${category}) with bounded reason and cleanup`,
+    { timeout: FAULT_TERMINAL_TIMEOUT_MS + 90_000 },
+    async () => {
+      await withHarness(async (ctx) => {
+        const scanId = randomUUID();
+        await seedQueued(ctx.redis, scanId, SAMPLE_BUNDLE);
+
+        const observer = startStatusObserver(ctx.port, scanId);
+        const worker = ctx.spawnWorker({ fault, readyMarker: 'none' });
+        try {
+          await worker.waitReady(WORKER_READY_TIMEOUT_MS);
+          const queue = ctx.openQueue();
+          const job = await queue.add('scan', { scanId, repoUrl: SAMPLE_BUNDLE });
+
+          const terminal = await waitTerminal(ctx.redis, scanId, FAULT_TERMINAL_TIMEOUT_MS);
+          assert.equal(terminal, 'Failed', `${fault} fault must end Failed`);
+
+          await observer.stop();
+          assert.deepEqual(
+            observer.observed,
+            ['Queued', 'Scanning', 'Failed'],
+            `unexpected lifecycle for ${fault}: ${observer.observed.join(' -> ')}`,
+          );
+
+          // BullMQ records the job as failed (original error rethrown, no retry).
+          assert.equal(await job.getState(), 'failed', 'engine rethrow must fail the BullMQ job');
+
+          // Bounded, redacted reason with the ORIGINAL failing stage's category
+          // (proving cleanup/persistence errors never override it).
+          const reason = await readFailureReason(ctx.redis, scanId);
+          assert.ok(reason, 'a Failed scan must persist a structured reason');
+          assert.equal(reason.category, category, 'category must be the original failing stage');
+          assert.equal(typeof reason.detail, 'string');
+          assert.ok(reason.detail.length > 0 && reason.detail.length <= 500, 'detail must be bounded ≤ 500');
+          // No uncontrolled absolute path leaks into persisted state (T-03-07).
+          assert.ok(
+            !reason.detail.includes(ctx.scanTmpDir),
+            'persisted detail must not contain uncontrolled filesystem paths',
+          );
+
+          // No partial results were marked; the CRITICAL list holds only its sentinel.
+          assert.deepEqual(await readCriticals(ctx.redis, scanId), []);
+
+          // TTL is still refreshed on the failed record.
+          assert.ok((await ctx.redis.ttl(`scan:${scanId}`)) >= MIN_TTL_SECONDS);
+
+          // Both allocated paths are cleaned on every failure path.
+          await assertNoScanArtifacts(ctx.scanTmpDir);
+        } finally {
+          await observer.stop().catch(() => undefined);
+        }
+      });
+    },
+  );
+}
+
+test(
+  'terminal guard: a duplicate job for a Finished scan is rethrown but never overwrites terminal state',
+  { timeout: FAULT_TERMINAL_TIMEOUT_MS + 90_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const scanId = randomUUID();
+      const key = `scan:${scanId}`;
+      const ts = new Date().toISOString();
+      const existing = [
+        {
+          vulnerabilityId: 'CVE-2019-10744',
+          pkgName: 'lodash',
+          installedVersion: '4.17.11',
+          severity: 'CRITICAL',
+          title: 'Prototype pollution',
+          primaryUrl: 'https://example.test/CVE-2019-10744',
+        },
+        {
+          vulnerabilityId: 'CVE-2021-44906',
+          pkgName: 'minimist',
+          installedVersion: '1.2.0',
+          severity: 'CRITICAL',
+          title: 'Prototype pollution',
+          primaryUrl: 'https://example.test/CVE-2021-44906',
+        },
+      ];
+      // Pre-seed an already-Finished scan with two stored CRITICALs.
+      const seed = ctx.redis
+        .multi()
+        .del(key)
+        .del(`${key}:critical`)
+        .hset(key, {
+          id: scanId,
+          status: 'Finished',
+          repoUrl: SAMPLE_BUNDLE,
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        .rpush(`${key}:critical`, ' scan:list:init');
+      for (const v of existing) seed.rpush(`${key}:critical`, JSON.stringify(v));
+      await seed.expire(key, 604_800).expire(`${key}:critical`, 604_800).exec();
+
+      const observer = startStatusObserver(ctx.port, scanId);
+      // A fast fault worker: markScanning/markFailed are no-ops on a terminal
+      // record, and the clone double rethrows so BullMQ still fails the job.
+      const worker = ctx.spawnWorker({ fault: 'clone', readyMarker: 'none' });
+      try {
+        await worker.waitReady(WORKER_READY_TIMEOUT_MS);
+        const queue = ctx.openQueue();
+        const job = await queue.add('scan', { scanId, repoUrl: SAMPLE_BUNDLE });
+
+        // The duplicate job is still rethrown (no silent success on terminal).
+        const deadline = Date.now() + FAULT_TERMINAL_TIMEOUT_MS;
+        let jobState = await job.getState();
+        while (jobState !== 'failed' && Date.now() < deadline) {
+          await sleep(STATUS_POLL_INTERVAL_MS);
+          jobState = await job.getState();
+        }
+        assert.equal(jobState, 'failed', 'duplicate job on a terminal scan is still rethrown');
+
+        await observer.stop();
+        // The authoritative terminal state was never flipped back to Scanning.
+        assert.ok(
+          !observer.observed.includes('Scanning'),
+          `terminal scan must not transition to Scanning: ${observer.observed.join(' -> ')}`,
+        );
+        assert.equal(await ctx.redis.hget(key, 'status'), 'Finished', 'status stays Finished');
+
+        // Stored CRITICALs are unchanged (no duplication, no loss).
+        const after = await readCriticals(ctx.redis, scanId);
+        assert.deepEqual(
+          after.map((v) => v.vulnerabilityId),
+          existing.map((v) => v.vulnerabilityId),
+          'terminal results must be preserved verbatim',
+        );
+      } finally {
+        await observer.stop().catch(() => undefined);
+      }
+    });
+  },
+);
