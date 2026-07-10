@@ -1,5 +1,5 @@
-import { once } from 'node:events';
 import { createWriteStream, existsSync, statSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { finished } from 'node:stream/promises';
 
@@ -7,7 +7,25 @@ async function writeChunk(
   stream: NodeJS.WritableStream,
   chunk: string,
 ): Promise<void> {
-  if (!stream.write(chunk)) await once(stream, 'drain');
+  if (stream.write(chunk)) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = (): void => {
+      stream.removeListener('drain', onDrain);
+      stream.removeListener('error', onError);
+    };
+    const onDrain = (): void => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error): void => {
+      cleanup();
+      reject(error);
+    };
+
+    stream.once('drain', onDrain);
+    stream.once('error', onError);
+  });
 }
 
 async function generateFixture(
@@ -19,30 +37,36 @@ async function generateFixture(
   let writtenBytes = 0;
   let index = 0;
 
-  await writeChunk(
-    stream,
-    '{"SchemaVersion":2,"Results":[{"Target":"synthetic","Vulnerabilities":[',
-  );
-  while (writtenBytes < targetBytes) {
-    const vulnerability = JSON.stringify({
-      VulnerabilityID: `CVE-SYN-${index}`,
-      PkgName: 'synthetic-pkg',
-      InstalledVersion: '1.0.0',
-      Severity:
-        index % 10 === 0 ? 'CRITICAL' : index % 10 === 1 ? 'HIGH' : 'LOW',
-      Title: 'Synthetic vulnerability for memory fixture',
-      PrimaryURL: 'https://example.invalid/cve',
-    });
-    const chunk = `${index === 0 ? '' : ','}${vulnerability}`;
-    await writeChunk(stream, chunk);
-    writtenBytes += Buffer.byteLength(chunk);
-    index += 1;
+  try {
+    await writeChunk(
+      stream,
+      '{"SchemaVersion":2,"Results":[{"Target":"synthetic","Vulnerabilities":[',
+    );
+    while (writtenBytes < targetBytes) {
+      const vulnerability = JSON.stringify({
+        VulnerabilityID: `CVE-SYN-${index}`,
+        PkgName: 'synthetic-pkg',
+        InstalledVersion: '1.0.0',
+        Severity:
+          index % 10 === 0 ? 'CRITICAL' : index % 10 === 1 ? 'HIGH' : 'LOW',
+        Title: 'Synthetic vulnerability for memory fixture',
+        PrimaryURL: 'https://example.invalid/cve',
+      });
+      const chunk = `${index === 0 ? '' : ','}${vulnerability}`;
+      await writeChunk(stream, chunk);
+      writtenBytes += Buffer.byteLength(chunk);
+      index += 1;
+    }
+    await writeChunk(stream, ']}]}');
+    stream.end();
+    await finished(stream);
+    const bytes = statSync(outputPath).size;
+    console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index }));
+  } catch (error: unknown) {
+    stream.destroy();
+    await rm(outputPath, { force: true }).catch(() => undefined);
+    throw error;
   }
-  await writeChunk(stream, ']}]}');
-  stream.end();
-  await finished(stream);
-  const bytes = statSync(outputPath).size;
-  console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index }));
 }
 
 function parseArguments(argv: string[]): { outputPath: string; targetMegabytes: number } {
