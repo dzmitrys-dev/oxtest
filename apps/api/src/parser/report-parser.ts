@@ -22,6 +22,31 @@ function toVulnerability(vulnerability: TrivyVulnerability): Vulnerability {
   };
 }
 
+const SEVERITIES = new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN']);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateVulnerability(value: unknown): TrivyVulnerability {
+  if (
+    !isRecord(value) ||
+    typeof value.VulnerabilityID !== 'string' ||
+    typeof value.PkgName !== 'string' ||
+    typeof value.InstalledVersion !== 'string' ||
+    typeof value.Severity !== 'string' ||
+    !SEVERITIES.has(value.Severity) ||
+    typeof value.Title !== 'string' ||
+    typeof value.PrimaryURL !== 'string'
+  ) {
+    throw new Error(
+      'Invalid Trivy vulnerability leaf: expected VulnerabilityID, PkgName, InstalledVersion, Severity, Title, and PrimaryURL with valid string values',
+    );
+  }
+
+  return value as unknown as TrivyVulnerability;
+}
+
 export class ReportParser {
   async *parse(reportPath: string): AsyncIterable<Vulnerability> {
     const pipeline = chain.chainUnchecked<unknown, TrivyVulnerability>([
@@ -29,8 +54,12 @@ export class ReportParser {
       parser(),
       pick({ filter: CRITICAL_LEAF_PATH }),
       streamValues(),
-      (data: { value: TrivyVulnerability }) =>
-        data.value.Severity === 'CRITICAL' ? data.value : chain.none,
+      (data: { value: unknown }) => {
+        const vulnerability = validateVulnerability(data.value);
+        return vulnerability.Severity === 'CRITICAL'
+          ? vulnerability
+          : chain.none;
+      },
     ]);
 
     for await (const vulnerability of pipeline as AsyncIterable<TrivyVulnerability>) {
