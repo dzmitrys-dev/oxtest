@@ -9,7 +9,7 @@
     "node": ">=22 <23"
   },
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && tsc --ignoreConfig --ignoreDeprecations 6.0 --target ES2023 --module node16 --moduleResolution node16 --esModuleInterop --skipLibCheck --strict --noUncheckedIndexedAccess --outDir dist --rootDir . scripts/gen-fixture.ts scripts/memtest.ts scripts/memtest-sweep.ts",
     "start:api": "node dist/index.js",
     "start:worker": "node dist/worker.js",
     "dev:api": "tsx watch src/index.ts",
@@ -18,7 +18,10 @@
     "test": "jest --passWithNoTests",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.ts\"",
-    "gen:fixture": "tsx scripts/gen-fixture.ts"
+    "gen:fixture": "tsx scripts/gen-fixture.ts",
+    "memtest": "tsx scripts/memtest.ts",
+    "memtest:sweep": "tsx scripts/memtest-sweep.ts",
+    "test:memory-contract": "node --test scripts/memory-process-contract.test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",
