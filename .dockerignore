@@ -1,0 +1,44 @@
+# Keep the build context lean and keep secrets / planning / fixtures out of
+# image layers (T-05-02-02, V12 information disclosure). Mirrors .gitignore for
+# build artifacts + adds the secret/planning exclusions.
+
+# Dependencies (reinstalled inside the image via `npm ci`)
+node_modules/
+**/node_modules/
+
+# Build artifacts (recompiled in the builder stage)
+dist
+**/dist
+coverage
+*.tsbuildinfo
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Secrets / environment files — never bake into image layers
+.env
+.env.*
+!.env.example
+
+# Planning + docs (not needed at runtime; may carry sensitive context)
+.planning
+.claude
+.github
+
+# Generated large streaming-parser fixtures (keep known-severity-mix.json)
+apps/api/fixtures/generated-*.json
+
+# Committed git bundles used only by the local integration harness
+**/*.bundle
+
+# Logs and CI probe output
+*.log
+logs
+scan-engine-feasibility.json
+
+# Editor / OS cruft
+.vscode
+.idea
+.DS_Store
