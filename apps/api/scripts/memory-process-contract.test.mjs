@@ -30,14 +30,17 @@ test('memory sweep uses validated argv arrays and disables shell execution', () 
 });
 
 test('memory workflow is valid YAML and keeps the authoritative heap cap', async () => {
+  const workflowSource = await readFile(
+    new URL('../../../.github/workflows/memory.yml', import.meta.url),
+    'utf8',
+  );
   const workflow = yaml.load(
-    await readFile(new URL('../../../.github/workflows/memory.yml', import.meta.url), 'utf8'),
+    workflowSource,
   );
   assert.ok(workflow && typeof workflow === 'object');
-  assert.match(
-    await readFile(new URL('../../../.github/workflows/memory.yml', import.meta.url), 'utf8'),
-    /node --max-old-space-size=150 apps\/api\/dist\/scripts\/memtest\.js/,
-  );
+  assert.match(workflowSource, /node --max-old-space-size=150 apps\/api\/dist\/scripts\/memtest\.js/);
+  assert.match(workflowSource, /timeout --signal=TERM --kill-after=30s 10m npm run memtest:sweep/);
+  assert.ok(workflowSource.indexOf('node --max-old-space-size=150') < workflowSource.indexOf('memtest:sweep'));
 });
 
 test('memtest fails closed when parsing produces no CRITICAL vulnerabilities', async () => {
