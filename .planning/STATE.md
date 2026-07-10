@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Required REST API & Runtime Lifecycle
+current_phase: 04
+current_phase_name: required-rest-api-runtime-lifecycle
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-07-10T16:38:38.765Z"
+last_updated: "2026-07-10T17:51:29.751Z"
 last_activity: 2026-07-10
-last_activity_desc: Phase 03 complete, transitioned to Phase 4
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
   percent: 50
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** Process a 500MB+ Trivy JSON report without OOM under `node --max-old-space-size=150` — memory efficiency is the explicit pass/fail criterion.
-**Current focus:** Phase 03 — scan-engine-adapters-queue-worker-service
+**Current focus:** Phase 04 — required-rest-api-runtime-lifecycle
 
 ## Current Position
 
-Phase: 4 — Required REST API & Runtime Lifecycle
-Plan: Not started
+Phase: 04 (required-rest-api-runtime-lifecycle) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-10 — Phase 03 complete, transitioned to Phase 4
+Last activity: 2026-07-10 — Phase 04 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P02 | 25min | 2 tasks | 13 files |
 | Phase 03 P03 | 42min | 2 tasks | 7 files |
 | Phase 03 P04 | 90min | 3 tasks | 9 files |
+| Phase 04 P01 | 9min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 03-02]: Used node:child_process.spawn instead of ESM-only execa (D-15 permits execFile/spawn); Trivy Docker fallback pinned aquasecurity/trivy:0.69.3 with /src:ro + /out mounts and tmpfs ephemeral cache
 - [Phase 03-03]: Worker split — thin @Processor WorkerHost shell delegates to a plain framework-free ScanEngine; all lifecycle logic + unit tests target the engine to avoid the @swc/core+@nestjs/bullmq jest panic (shell/wiring validated only by compiled worker-process-contract.mjs)
 - [Phase 03-03]: Redis role-split needs no ScanModule edit — plain-options forRootAsync lets BullMQ auto-null the blocking worker connection while the producer queue keeps finite retries; worker.ts uses logger:false+abortOnError:false for marker-first stdout + fail-closed diagnostics
+- [Phase ?]: Zero-dep GitHub-URL validator (parseGithubUrl) + GithubUrlPipe; class-validator/class-transformer not installed (04-01)
+- [Phase ?]: REST responses use a state-shaped ScanResponse union via toScanResponse; controllers thin + import-guarded per ARCH-01 (04-01)
+- [Phase ?]: /health uses a bounded active Redis PING over the existing REDIS_CLIENT — no new connection (D-08, 04-01)
 
 ### Pending Todos
 
@@ -108,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T15:46:41.765Z
+Last session: 2026-07-10T17:50:25.973Z
 Stopped at: Phase 4 context gathered
 Resume file: .planning/phases/04-required-rest-api-runtime-lifecycle/04-CONTEXT.md

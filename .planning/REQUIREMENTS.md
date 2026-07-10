@@ -9,11 +9,11 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Scan API (SCAN)
 
-- [ ] **SCAN-01**: Client can `POST /api/scan` with a GitHub repository URL and receive `{ scanId, status: "Queued" }` immediately, without waiting for the scan to run (non-blocking)
-- [ ] **SCAN-02**: `POST /api/scan` validates the body — rejects missing/malformed URLs and non-GitHub hosts with a 400 before any work is enqueued (SSRF/command-injection guard)
-- [ ] **SCAN-03**: Client can `GET /api/scan/:scanId` and receive the current status (`Queued` | `Scanning` | `Finished` | `Failed`)
-- [ ] **SCAN-04**: When status is `Finished`, `GET /api/scan/:scanId` returns the list of CRITICAL vulnerabilities; when `Failed`, it returns an error reason
-- [ ] **SCAN-05**: `GET /api/scan/:scanId` for an unknown scanId returns 404
+- [x] **SCAN-01**: Client can `POST /api/scan` with a GitHub repository URL and receive `{ scanId, status: "Queued" }` immediately, without waiting for the scan to run (non-blocking)
+- [x] **SCAN-02**: `POST /api/scan` validates the body — rejects missing/malformed URLs and non-GitHub hosts with a 400 before any work is enqueued (SSRF/command-injection guard)
+- [x] **SCAN-03**: Client can `GET /api/scan/:scanId` and receive the current status (`Queued` | `Scanning` | `Finished` | `Failed`)
+- [x] **SCAN-04**: When status is `Finished`, `GET /api/scan/:scanId` returns the list of CRITICAL vulnerabilities; when `Failed`, it returns an error reason
+- [x] **SCAN-05**: `GET /api/scan/:scanId` for an unknown scanId returns 404
 
 ### Scan Engine / Worker (ENGINE)
 
@@ -34,7 +34,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Architecture (ARCH)
 
-- [ ] **ARCH-01**: REST controllers and GraphQL resolvers are thin transport adapters containing no business logic — both delegate to a single shared `ScanService`
+- [x] **ARCH-01**: REST controllers and GraphQL resolvers are thin transport adapters containing no business logic — both delegate to a single shared `ScanService`
 - [x] **ARCH-02**: `ScanService` only orchestrates (enqueue jobs, read status) and never touches `fs` or `child_process` directly
 - [x] **ARCH-03**: Infrastructure concerns are isolated behind injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
 - [x] **ARCH-04**: The app has two entrypoints sharing one `ScanModule`: `src/index.ts` (API, HTTP listener → `dist/index.js`) and `src/worker.ts` (worker-only via `createApplicationContext`, no HTTP listener)
@@ -56,7 +56,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 - [ ] **API-01**: A GraphQL endpoint exposes `scan(id)` query returning `type Scan { id: ID!, status: String!, criticalVulnerabilities: [Vulnerability] }` (code-first, MercuriusDriver)
 - [ ] **API-02**: A GraphQL mutation enqueues a scan (parity with `POST /api/scan`), delegating to the same `ScanService`
-- [ ] **API-03**: A health endpoint (`GET /health`) reports service + Redis connectivity
+- [x] **API-03**: A health endpoint (`GET /health`) reports service + Redis connectivity
 
 ### Frontend (FE)
 
@@ -110,11 +110,11 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCAN-01 | Phase 4 | Pending |
-| SCAN-02 | Phase 4 | Pending |
-| SCAN-03 | Phase 4 | Pending |
-| SCAN-04 | Phase 4 | Pending |
-| SCAN-05 | Phase 4 | Pending |
+| SCAN-01 | Phase 4 | Complete |
+| SCAN-02 | Phase 4 | Complete |
+| SCAN-03 | Phase 4 | Complete |
+| SCAN-04 | Phase 4 | Complete |
+| SCAN-05 | Phase 4 | Complete |
 | ENGINE-01 | Phase 3 | Complete |
 | ENGINE-02 | Phase 3 | Complete |
 | ENGINE-03 | Phase 3 | Complete |
@@ -126,7 +126,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | MEM-02 | Phase 2 | Complete |
 | MEM-03 | Phase 2 | Complete |
 | MEM-04 | Phase 2 | Complete |
-| ARCH-01 | Phase 4 | Pending |
+| ARCH-01 | Phase 4 | Complete |
 | ARCH-02 | Phase 3 | Complete |
 | ARCH-03 | Phase 3 | Complete |
 | ARCH-04 | Phase 1 | Complete |
@@ -139,7 +139,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | TYPE-02 | Phase 1 | Complete |
 | API-01 | Phase 6 (Bonus B) | Pending |
 | API-02 | Phase 6 (Bonus B) | Pending |
-| API-03 | Phase 4 | Pending |
+| API-03 | Phase 4 | Complete |
 | FE-01 | Phase 6 | Pending |
 | FE-02 | Phase 6 | Pending |
 | FE-03 | Phase 6 | Pending |

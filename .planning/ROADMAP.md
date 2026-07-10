@@ -111,11 +111,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. On SIGTERM/SIGINT the API and worker shut down gracefully, draining the worker and closing Redis connections
   5. An integration test proves `POST /api/scan → Queued → poll → Finished/Failed` against the worker/service boundary without requiring GraphQL
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Thin REST controllers, GitHub-URL validator/pipe, response DTOs, and Redis-PING health endpoint [SCAN-01..05, API-03, ARCH-01]
+- [x] 04-01-PLAN.md — Thin REST controllers, GitHub-URL validator/pipe, response DTOs, and Redis-PING health endpoint [SCAN-01..05, API-03, ARCH-01]
 - [ ] 04-02-PLAN.md — Bounded graceful-shutdown drain, SHUTDOWN_GRACE_MS config, and Nest-hook Redis teardown on both entrypoints [ERR-05]
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -162,6 +162,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
-| 4. Required REST API & Runtime Lifecycle | 0/3 | Planned | - |
+| 4. Required REST API & Runtime Lifecycle | 1/3 | In Progress|  |
 | 5. Packaging, Ops & Assignment Acceptance | 0/TBD | Not started | - |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |
