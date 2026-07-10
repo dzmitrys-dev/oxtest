@@ -12,6 +12,7 @@ import type { TrivyRunner, TrivyRunOptions } from './trivy-runner.port';
 
 import {
   createEngineAdapters,
+  resolveActiveEngineFault,
   resolveEngineTestFault,
 } from './adapter-factory';
 import { RepoClonerAdapter } from './repo-cloner.adapter';
@@ -437,5 +438,56 @@ describe('adapter-factory — production/test-fault construction', () => {
     expect(() => resolveEngineTestFault('bogus')).toThrow(
       /SCAN_ENGINE_TEST_FAULT/,
     );
+  });
+
+  describe('HIGH-02: fault seam is inert in production', () => {
+    it('ignores a set fault under NODE_ENV=production and constructs REAL adapters', () => {
+      const warnings: string[] = [];
+      const adapters = createEngineAdapters({
+        scanTmpDir: '/tmp/scan',
+        fault: 'clone',
+        nodeEnv: 'production',
+        logger: {
+          warn: (m): void => {
+            warnings.push(m);
+          },
+        },
+      });
+      // Fault ignored → the real clone/trivy adapters are wired.
+      expect(adapters.cloner).toBeInstanceOf(RepoClonerAdapter);
+      expect(adapters.trivy).toBeInstanceOf(TrivyRunnerAdapter);
+      // The ignore is loud, not silent.
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatch(/IGNORED in production/);
+    });
+
+    it('activates the fault double outside production with a loud WARN', () => {
+      const warnings: string[] = [];
+      const adapters = createEngineAdapters({
+        scanTmpDir: '/tmp/scan',
+        fault: 'clone',
+        nodeEnv: 'test',
+        logger: {
+          warn: (m): void => {
+            warnings.push(m);
+          },
+        },
+      });
+      // Non-production → the injected fault double replaces the real clone adapter.
+      expect(adapters.cloner).not.toBeInstanceOf(RepoClonerAdapter);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatch(/ACTIVE/);
+    });
+
+    it('resolveActiveEngineFault requires BOTH a non-none fault AND non-production', () => {
+      // Fail-closed default: none stays none, and no WARN fires.
+      expect(resolveActiveEngineFault('none', 'test')).toBe('none');
+      expect(resolveActiveEngineFault('none', 'production')).toBe('none');
+      // Production forces inert regardless of the requested fault.
+      expect(resolveActiveEngineFault('trivy', 'production')).toBe('none');
+      // Both conditions met → the fault engages.
+      expect(resolveActiveEngineFault('trivy', 'development')).toBe('trivy');
+      expect(resolveActiveEngineFault('parse', undefined)).toBe('parse');
+    });
   });
 });

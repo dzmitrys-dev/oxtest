@@ -64,11 +64,6 @@ import { ScanModule } from './scan/scan.module';
         const gitAllowedProtocols = config.get<string>(
           'SCAN_GIT_ALLOWED_PROTOCOLS',
         );
-        const adapters = createEngineAdapters({
-          scanTmpDir,
-          fault,
-          gitAllowedProtocols,
-        });
 
         const nestLogger = new Logger('ScanEngine');
         const logger: EngineLogger = {
@@ -79,6 +74,17 @@ import { ScanModule } from './scan/scan.module';
             nestLogger.error(message);
           },
         };
+
+        // HIGH-02: the fault seam is resolved at composition time against
+        // NODE_ENV. In production a stray SCAN_ENGINE_TEST_FAULT is ignored
+        // (real adapters run) with a loud WARN, never silently disabling scans.
+        const adapters = createEngineAdapters({
+          scanTmpDir,
+          fault,
+          gitAllowedProtocols,
+          nodeEnv: config.get<string>('NODE_ENV'),
+          logger,
+        });
 
         return new ScanEngine({
           repository,

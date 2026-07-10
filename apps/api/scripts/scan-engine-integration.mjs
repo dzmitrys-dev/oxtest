@@ -227,14 +227,18 @@ function startStatusObserver(port, scanId) {
  * independent `SCAN_WORKER_READY` bootstrap sentinel (NEVER conflated with the
  * report-readiness marker), and capture the first `REPORT_READY <path>` line.
  */
-function spawnWorker({ port, scanTmpDir, fault, readyMarker }) {
+function spawnWorker({ port, scanTmpDir, fault, readyMarker, nodeEnv }) {
   const child = spawn(process.execPath, [WORKER_JS], {
     cwd: API_DIR,
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,
-      NODE_ENV: 'production',
+      // HIGH-02: the SCAN_ENGINE_TEST_FAULT seam is INERT in production, so a
+      // fault-injection case MUST run under a non-production NODE_ENV to
+      // activate the doubles. The Docker success path stays 'production' and
+      // exercises the real adapters end-to-end.
+      NODE_ENV: nodeEnv ?? 'production',
       REDIS_HOST: '127.0.0.1',
       REDIS_PORT: String(port),
       SCAN_TMP_DIR: scanTmpDir,
@@ -561,7 +565,12 @@ for (const { fault, category } of FAULT_CASES) {
         await seedQueued(ctx.redis, scanId, SAMPLE_BUNDLE);
 
         const observer = startStatusObserver(ctx.port, scanId);
-        const worker = ctx.spawnWorker({ fault, readyMarker: 'none' });
+        // Fault doubles only activate outside production (HIGH-02).
+        const worker = ctx.spawnWorker({
+          fault,
+          readyMarker: 'none',
+          nodeEnv: 'test',
+        });
         try {
           await worker.waitReady(WORKER_READY_TIMEOUT_MS);
           const queue = ctx.openQueue();
@@ -654,7 +663,12 @@ test(
       const observer = startStatusObserver(ctx.port, scanId);
       // A fast fault worker: markScanning/markFailed are no-ops on a terminal
       // record, and the clone double rethrows so BullMQ still fails the job.
-      const worker = ctx.spawnWorker({ fault: 'clone', readyMarker: 'none' });
+      // Non-production NODE_ENV so the fault seam activates (HIGH-02).
+      const worker = ctx.spawnWorker({
+        fault: 'clone',
+        readyMarker: 'none',
+        nodeEnv: 'test',
+      });
       try {
         await worker.waitReady(WORKER_READY_TIMEOUT_MS);
         const queue = ctx.openQueue();

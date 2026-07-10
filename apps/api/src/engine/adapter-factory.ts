@@ -62,6 +62,11 @@ export interface EngineAdapters {
   cleaner: TempArtifactCleaner;
 }
 
+/** Loud diagnostics sink for the fault-seam guard (HIGH-02). */
+export interface FaultSeamLogger {
+  warn(message: string): void;
+}
+
 export interface AdapterFactoryOptions {
   /** Validated `SCAN_TMP_DIR` root — the allocator's exclusive base. */
   scanTmpDir: string;
@@ -72,6 +77,46 @@ export interface AdapterFactoryOptions {
    * adapter's fail-closed `https`-only default.
    */
   gitAllowedProtocols?: string;
+  /**
+   * Composition-time environment (HIGH-02). The fault seam is INERT unless
+   * `nodeEnv !== 'production'`, so a stray `SCAN_ENGINE_TEST_FAULT` can never
+   * silently disable real scanning in a production build. Absent → resolved
+   * from `process.env.NODE_ENV`.
+   */
+  nodeEnv?: string;
+  /** Loud WARN sink used when the fault seam is active (or ignored in prod). */
+  logger?: FaultSeamLogger;
+}
+
+/**
+ * Fail-closed decision of whether the fault seam actually activates (HIGH-02).
+ * A non-`none` fault engages ONLY outside production; in production it is
+ * ignored (real adapters run) with a loud WARN so a misconfiguration is
+ * observable rather than silent. A single-guard (env var alone) is a latent
+ * production incident, so both conditions are required at composition time.
+ */
+export function resolveActiveEngineFault(
+  requested: EngineTestFault,
+  nodeEnv: string | undefined,
+  logger?: FaultSeamLogger,
+): EngineTestFault {
+  if (requested === 'none') {
+    return 'none';
+  }
+  if (nodeEnv === 'production') {
+    logger?.warn(
+      `SCAN_ENGINE_TEST_FAULT='${requested}' IGNORED in production: the engine ` +
+        `fault seam is inert; real adapters will run. This env var must not be ` +
+        `set in production.`,
+    );
+    return 'none';
+  }
+  logger?.warn(
+    `SCAN_ENGINE_TEST_FAULT='${requested}' ACTIVE (NODE_ENV=${nodeEnv ?? 'undefined'}): ` +
+      `REAL scanning is DISABLED — in-memory fault doubles are in use. This must ` +
+      `NEVER happen in production.`,
+  );
+  return requested;
 }
 
 /**
@@ -95,7 +140,14 @@ export function reportReadyStdoutProducer(reportPath: string): Promise<void> {
 export function createEngineAdapters(
   options: AdapterFactoryOptions,
 ): EngineAdapters {
-  const fault = options.fault ?? 'none';
+  // HIGH-02: resolve the EFFECTIVE fault at composition time. In production the
+  // seam is forced inert (real adapters), so a stray env var cannot silently
+  // disable real scanning.
+  const fault = resolveActiveEngineFault(
+    options.fault ?? 'none',
+    options.nodeEnv ?? process.env.NODE_ENV,
+    options.logger,
+  );
   if (fault === 'none') {
     return {
       allocator: new ScanPathAllocatorAdapter({
