@@ -28,6 +28,7 @@
     "test:api:integration": "node --import tsx --test scripts/api-integration.mjs",
     "test:selftest": "node --test scripts/selftest-index-boot.mjs",
     "test:acceptance": "node --import tsx --test scripts/acceptance.mjs",
+    "test:oom:container": "node --import tsx scripts/docker-oom-proof.mjs",
     "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs"
   },
   "dependencies": {
