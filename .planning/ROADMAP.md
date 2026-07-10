@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI (completed 2026-07-10)
 - [x] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup (completed 2026-07-10)
 - [x] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional (completed 2026-07-10)
-- [ ] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate
+- [x] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate (completed 2026-07-10)
 - [ ] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs
 
 ## Phase Details
@@ -135,7 +135,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. CI runs lint + type-check + parser, adapter, worker, and REST contract tests and fails the build on any failure; the existing Node 22 memory proof remains a required gate
   5. The assignment's verbatim self-test `node --max-old-space-size=150 dist/index.js` boots the API cleanly without OOM, AND the memory-critical 500MB+ parse is proven under the same 150MB ceiling in `dist/worker.js` (where the two-entrypoint design actually runs the parser) — closing the gap between the PDF's literal command (which names `dist/index.js`) and the process that does the heavy work
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 **Wave 1** *(parallel — no shared files)*
 
@@ -144,7 +144,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-03-PLAN.md — acceptance harness (POST→CRITICAL + cleanup + correlation + criterion #5), in-container OOM proof, and CI wiring [OPS-05, OPS-02]
+- [x] 05-03-PLAN.md — acceptance harness (POST→CRITICAL + cleanup + correlation + criterion #5), in-container OOM proof, and CI wiring [OPS-05, OPS-02]
 
 ### Phase 6: Optional Bonuses & Documentation
 
@@ -172,5 +172,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
-| 5. Packaging, Ops & Assignment Acceptance | 2/3 | In Progress|  |
+| 5. Packaging, Ops & Assignment Acceptance | 3/3 | Complete   | 2026-07-10 |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |

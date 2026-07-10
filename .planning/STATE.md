@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 05
 current_phase_name: packaging-ops-assignment-acceptance
-status: executing
+status: verifying
 stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-07-10T20:31:24.955Z"
+last_updated: "2026-07-10T20:49:44.650Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 14
-  completed_plans: 13
-  percent: 67
+  completed_plans: 14
+  percent: 83
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 05 (packaging-ops-assignment-acceptance) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-10 — Phase 05 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -69,6 +69,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P03 | 15min | 3 tasks | 2 files |
 | Phase 05 P01 | 13min | 3 tasks | 13 files |
 | Phase 05 P02 | 15min | 2 tasks | 3 files |
+| Phase 05 P03 | 10min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-01 (D-13): WR-01 canonical URL pipe, WR-02 SHUTDOWN_GRACE_MS max 9000, WR-03 non-throwing REDIS_CLIENT error listener
 - [Phase ?]: 05-02: Docker memory cap uses top-level mem_limit:200m (resolves to 209715200 bytes); deploy.resources deliberately absent (silently ignored non-swarm)
 - [Phase ?]: 05-02: api + worker share one code-guardian-app:latest image from the node:22-slim runtime target; differentiated only by per-service command
+- [Phase ?]: 05-03: Docker-free selftest-index-boot.mjs is the authoritative criterion-#5a proof (always-required, no Docker/Redis); acceptance.mjs is the richer Docker-path superset; in-container OOM proof asserts OOMKilled==false AND exit 0
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T20:31:24.948Z
+Last session: 2026-07-10T20:48:56.927Z
 Stopped at: Completed 05-02-PLAN.md
 Resume file: .planning/phases/05-packaging-ops-assignment-acceptance/05-CONTEXT.md
