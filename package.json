@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "npm run build --workspace apps/api",
+    "build:all": "npm run build --workspace apps/web && npm run build --workspace apps/api",
     "start:api": "npm run start:api --workspace apps/api",
     "start:worker": "npm run start:worker --workspace apps/api",
     "dev:api": "npm run dev:api --workspace apps/api",

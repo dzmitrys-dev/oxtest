@@ -19,15 +19,26 @@
 FROM node:22-slim AS builder
 WORKDIR /app
 
-# Copy only the manifests first so `npm ci` is cached until deps change.
+# Copy only the manifests first so `npm ci` is cached until deps change. Both
+# workspace manifests (api + web) are needed: apps/web is a registered workspace
+# in the root lockfile (Plan 02), so `npm ci` fails if apps/web/package.json is
+# absent. This installs BOTH workspaces' full deps (incl. web devDeps: vite,
+# tailwind, tsc) — all confined to this discarded builder stage.
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
 RUN npm ci
 
 # Copy the rest of the workspace and produce the compiled output at
 # apps/api/dist/ (nest build → dist/index.js + dist/worker.js; the trailing tsc
 # pass emits dist/scripts/*.js).
 COPY . .
+# Build the React SPA FIRST (emits apps/web/dist), then build the api. The api
+# build's postbuild (scripts/ensure-dist-web.mjs) is the SINGLE mechanism that
+# copies apps/web/dist → apps/api/dist/web (nest build's deleteOutDir wipes dist,
+# so the copy MUST follow the api build — Open Question 2). No duplicate cp here;
+# the runtime `COPY --from=builder .../apps/api/dist` carries dist/web unchanged.
+RUN npm run build --workspace apps/web
 RUN npm run build --workspace apps/api
 
 # ---- runtime ----
@@ -56,10 +67,16 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Reinstall with production dependencies only, then drop the npm cache so it
-# does not bloat the image layer (V12 — keep the surface small).
+# does not bloat the image layer (V12 — keep the surface small). Scope the
+# install to the api workspace (`--workspace apps/api --include-workspace-root`)
+# so NONE of apps/web's deps enter the runtime image — not its devDeps (vite,
+# tailwind, tsc) NOR its runtime deps (react, urql): the SPA is already a
+# pre-built static bundle in dist/web, so the runtime never needs them. This
+# also means apps/web/package.json is intentionally NOT copied here.
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --workspace apps/api --include-workspace-root \
+ && npm cache clean --force
 
 # Bring in ONLY the compiled output from the builder stage. Source, tests,
 # planning docs and build tooling never enter the runtime image.

@@ -21,6 +21,13 @@ services:
   # REST API (Fastify). Entrypoint is `node dist/index.js` — the assignment's
   # verbatim self-test command (D-04). Publishes 3000 to the host for the
   # reviewer; keys its healthcheck off GET /health (200 ok / 503 on Redis down).
+  #
+  # SERVED UI (Bonus A, D-04): this same process also serves the built React SPA
+  # at `/` from dist/web (ServeStaticModule) on the SAME origin/port — one URL,
+  # no CORS. The SPA is folded into the image by the multi-stage Dockerfile
+  # builder (apps/web build → apps/api/dist/web), so `docker compose up` serves
+  # REST + GraphQL (/graphql, /graphiql) + the UI on :3000 with no host build.
+  # No new service and no second port: exactly three services (redis+api+worker).
   api:
     build:
       context: .
