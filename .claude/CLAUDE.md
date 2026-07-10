@@ -97,7 +97,7 @@ A high-performance Node.js/TypeScript backend service that wraps the Trivy secur
 - Because it's framework-agnostic and portable, at the cost of running as its own mounted handler rather than a native plugin
 - Use BullMQ sandboxed processors (`Worker Threads` or spawned child processes)
 - Because isolating CPU-heavy work prevents it from stalling the event loop and triggering BullMQ's stalled-job detection
-- Fall back to invoking Trivy via its official Docker image (`docker run aquasec/trivy ...`) through the same `execa` call
+- Fall back to invoking Trivy via its official Docker image (`docker run aquasecurity/trivy:0.69.3 ...`) through the same `execa` call
 - Because this matches the project's own key decision ("auto-detect local binary, fall back to Docker image") and keeps the CLI-shelling code path uniform
 
 ## Version Compatibility

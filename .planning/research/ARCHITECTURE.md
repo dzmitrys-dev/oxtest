@@ -47,7 +47,7 @@
 ┌───────────────────────────────────────────────────────────────────────┐
 │                       INFRASTRUCTURE ADAPTERS                           │
 │  RepoCloner (simple-git/execa git clone --depth 1)                      │
-│  TrivyRunner (spawn trivy binary or docker run aquasec/trivy)           │
+│  TrivyRunner (spawn trivy binary or docker run aquasecurity/trivy:0.69.3) │
 │  ReportParser (stream-json: parser -> pick('Results') -> streamArray)  │
 │  ScanRepository (ioredis: HSET/HGETALL scan:<id>)                       │
 └───────────────────────────────────────────────────────────────────────┘

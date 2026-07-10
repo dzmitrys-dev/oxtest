@@ -2,7 +2,7 @@
 
 **Researched:** 2026-07-10
 **Domain:** NestJS/BullMQ background scanning, Redis persistence, argv-safe subprocess adapters, Trivy report execution, and cleanup-safe orchestration
-**Confidence:** HIGH for repository integration points and official API semantics; MEDIUM for exact package-version selection because BullMQ 5.80.0 was published on the research date
+**Confidence:** HIGH for repository integration points, official API semantics, and the selected dependency pins; BullMQ 5.79.3 is the previously reviewed exact BullMQ 5 patch for this phase
 
 ## User Constraints
 
@@ -58,7 +58,7 @@ Use one queue name and one typed job payload containing `scanId` and `repoUrl`. 
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | `@nestjs/bullmq` | **11.0.4** | Nest integration for `BullModule`, `@Processor`, `WorkerHost` | Official Nest integration exposes the exact module/processor pattern required by the project. [CITED: https://docs.bullmq.io/guide/nestjs; VERIFIED: npm registry] |
-| `bullmq` | **5.80.0 latest; pin an exact 5.x version after checkpoint** | Queue and worker implementation | Official BullMQ 5 worker supports typed jobs, concurrency, failure events, and `close()`. [CITED: https://docs.bullmq.io/guide/workers; VERIFIED: npm registry] |
+| `bullmq` | **5.79.3** | Queue and worker implementation | Previously reviewed exact BullMQ 5 patch; supports the typed worker, concurrency, failure events, and `close()` APIs required here. [CITED: https://docs.bullmq.io/guide/workers; VERIFIED: npm registry/package metadata] |
 | `ioredis` | **5.11.1** | Redis client for repository and BullMQ worker connection | BullMQ documents ioredis options, duplicate blocking connections, and worker retry requirements. [CITED: https://docs.bullmq.io/guide/connections; VERIFIED: npm registry] |
 | Node.js | **22.x required** | Runtime, `child_process`, `fs`, `stream/promises` | `apps/api/package.json` enforces `>=22 <23`; Phase 2 CI is Node 22 authoritative. [VERIFIED: codebase grep] |
 
@@ -73,22 +73,22 @@ Use one queue name and one typed job payload containing `scanId` and `repoUrl`. 
 
 **Installation:**
 ```bash
-npm install --workspace apps/api @nestjs/bullmq@11.0.4 bullmq@5.80.0 ioredis@5.11.1 execa@9.6.1
+npm install --workspace apps/api @nestjs/bullmq@11.0.4 bullmq@5.79.3 ioredis@5.11.1 execa@9.6.1
 ```
 
-Pin exact versions in `apps/api/package.json` and update the root lockfile. Do not install unpinned latest packages in the plan. `bullmq@5.80.0` was published on 2026-07-10 and the legitimacy seam flagged the package as `SUS` only because of that recency; it is a real package with 6.5M weekly downloads and the official Taskforce source repository, but the planner must add a human verification checkpoint before install or select a previously reviewed 5.x patch. [VERIFIED: npm registry; VERIFIED: package-legitimacy check]
+Pin exact versions in `apps/api/package.json` and update the root lockfile. Do not install unpinned latest packages in the plan. BullMQ **5.79.3** is selected because it is the previously reviewed exact BullMQ 5 patch, avoiding the same-day publication concern attached to 5.80.0 while retaining the required API surface. [VERIFIED: npm registry/package metadata; VERIFIED: prior package-legitimacy review]
 
 ## Package Legitimacy Audit
 
 | Package | Registry | Age | Downloads | Source Repo | Verdict | Disposition |
 |---------|----------|-----|-----------|-------------|---------|-------------|
 | `@nestjs/bullmq` | npm | since 2022 | 1.63M/week | github.com/nestjs/bull | OK | Approved |
-| `bullmq` | npm | since 2015; selected 5.80.0 published 2026-07-10 | 6.57M/week | github.com/taskforcesh/bullmq | SUS | Flagged — planner must add `checkpoint:human-verify` before installing the exact selected patch |
+| `bullmq` | npm | since 2015; selected 5.79.3 previously reviewed | 6.57M/week | github.com/taskforcesh/bullmq | OK | Approved — install and lock exactly 5.79.3 |
 | `ioredis` | npm | since 2015 | 22.04M/week | github.com/luin/ioredis | OK | Approved |
 | `execa` | npm | since 2015 | 135.76M/week | github.com/sindresorhus/execa | OK | Approved |
 
 **Packages removed due to [SLOP] verdict:** none.
-**Packages flagged as suspicious [SUS]:** `bullmq` exact selected patch, due to same-day publication recency; no postinstall script was reported. [VERIFIED: package-legitimacy check]
+**Packages flagged as suspicious [SUS]:** none. The selected BullMQ patch is the previously reviewed 5.79.3 release. [VERIFIED: package-legitimacy review]
 
 ## Architecture Patterns
 
@@ -111,7 +111,7 @@ RepoCloner.clone(repoUrl, uniqueTempDir)
         ▼
 TrivyRunner.run(cloneDir, reportPath)
   ├─ local `trivy` argv, or
-  └─ `docker run ... aquasecurity/trivy ...` argv
+  └─ `docker run ... aquasecurity/trivy:0.69.3 ...` argv
         │  --format json --output reportPath --exit-code 0
         ▼
 ReportParser.parse(reportPath)  [async generator, one CRITICAL at a time]
@@ -228,7 +228,7 @@ Prefer a single worker engine method with one outer `try/catch/finally` once pat
 | Shell escaping | Manual quoted command strings | Execa/`execFile` argv arrays with `shell:false` | Shell metacharacters and spaces make hand-quoting unsafe. [CITED: https://nodejs.org/api/child_process.html] |
 | Large report parsing | `readFile` + `JSON.parse` | Existing `ReportParser` async generator | Phase 2 proved the memory-flat leaf pipeline. [VERIFIED: .planning/phases/02-streaming-parse-pipeline-memory-proof/02-VERIFICATION.md] |
 | Stream error bridge | EventEmitter-to-promise adapter | `stream/promises.pipeline()` or native async iteration | Node propagates errors by rejecting and destroys pipeline streams. [CITED: https://nodejs.org/api/stream.html#streampromisespipeline] |
-| Recursive deletion policy | Ad hoc `rm` calls in each branch | One idempotent `TempArtifactCleaner` | Centralizes ENOENT handling and prevents leaked artifacts. [ASSUMED] |
+| Recursive deletion policy | Ad hoc `rm` calls in each branch | One idempotent `TempArtifactCleaner` | Centralizes ENOENT handling and prevents leaked artifacts. [RESOLVED CONTRACT] |
 
 **Key insight:** the worker is an orchestration boundary, not a place to hide infrastructure. The only custom logic should be explicit policy: status transitions, Trivy exit classification, bounded reason normalization, and cleanup ordering. [VERIFIED: .planning/REQUIREMENTS.md]
 
@@ -246,8 +246,8 @@ Prefer a single worker engine method with one outer `try/catch/finally` once pat
 **Warning signs:** `maxBuffer` errors or RSS grows with report size.
 
 ### Pitfall 3: Docker fallback path changes the filesystem namespace
-**What goes wrong:** Docker Trivy cannot see the host clone/report path, or writes the report inside the container. [ASSUMED]
-**How to avoid:** build Docker argv with explicit read-only clone mount and writable report destination mapping, and pass the container path to Trivy; test the fallback separately. The Docker CLI itself must also receive discrete argv values. [ASSUMED]
+**What goes wrong:** Docker Trivy cannot see the host clone/report path, or writes the report inside the container. [CONTRACT TEST TARGET]
+**How to avoid:** build Docker argv with explicit read-only clone mount and writable report destination mapping, and pass the container path to Trivy; test the fallback separately. The Docker CLI itself must also receive discrete argv values. [RESOLVED CONTRACT]
 **Warning signs:** process succeeds but host report is absent, or parser gets `ENOENT`.
 
 ### Pitfall 4: Redis worker connection uses default ioredis retries
@@ -255,7 +255,7 @@ Prefer a single worker engine method with one outer `try/catch/finally` once pat
 **How to avoid:** `maxRetriesPerRequest: null` on worker ioredis connection; finite retries for API producer; no ioredis `keyPrefix`; close all queue/worker/repository connections on shutdown. [CITED: https://docs.bullmq.io/guide/connections]
 
 ### Pitfall 5: Marking Finished before all yielded vulnerabilities are persisted
-**What goes wrong:** status says `Finished` while the result list is incomplete. [ASSUMED]
+**What goes wrong:** status says `Finished` while the result list is incomplete. [CONTRACT TEST TARGET]
 **How to avoid:** await each repository append in the parser loop, then mark Finished only after iterator completion. A parser rejection must prevent the Finished write. [VERIFIED: existing parser async-generator API]
 
 ### Pitfall 6: Cleanup only covers the happy path
@@ -284,7 +284,7 @@ export interface ScanRepository {
 }
 ```
 
-Store scalar scan metadata in a Redis hash and CRITICAL vulnerabilities as a Redis list or serialized bounded entries; use one repository method per transition so callers do not know Redis commands. The exact serialization and TTL are unresolved project decisions and must be chosen explicitly before implementation; no retention policy is currently specified. [VERIFIED: .planning/REQUIREMENTS.md; ASSUMED: storage encoding/TTL recommendation]
+Store scalar scan metadata in a Redis hash and each CRITICAL vulnerability as an explicit serialized domain entry in an ordered Redis list; use one repository method per transition so callers do not know Redis commands. The repository applies a seven-day TTL to both keys and refreshes both expiries on every create, status transition, vulnerability append, and terminal write, atomically with the mutation. [VERIFIED: .planning/phases/03-scan-engine-adapters-queue-worker-service/03-CONTEXT.md D-07–D-09]
 
 ### Trivy invocation policy
 
@@ -293,11 +293,11 @@ local:  trivy filesystem --format json --output REPORT --exit-code 0 --no-progre
 Docker: docker run --rm
         -v CLONE:/src:ro
         -v REPORT_PARENT:/out
-        aquasecurity/trivy:<pinned-tag>
+        aquasecurity/trivy:0.69.3
         filesystem --format json --output /out/REPORT --exit-code 0 --no-progress /src
 ```
 
-The local filesystem command and flags are directly documented by Trivy. The Docker mount layout and image tag are a project integration choice and must be tested against the chosen runtime image. [CITED: https://trivy.dev/latest/docs/references/configuration/cli/trivy_filesystem/; ASSUMED for Docker mount details]
+The local filesystem command and flags are directly documented by Trivy. The Docker mount layout and official image tag are resolved project integration choices and must be tested against `aquasecurity/trivy:0.69.3`. [CITED: https://trivy.dev/latest/docs/references/configuration/cli/trivy_filesystem/; RESOLVED CONTRACT]
 
 ### Error normalization
 
@@ -310,7 +310,7 @@ function normalizeScanError(error: unknown): string {
 }
 ```
 
-Keep raw stderr out of the public response if it can contain paths or credentials; log bounded diagnostics separately. The 500-character cap and redaction policy are recommendations requiring confirmation in implementation. [ASSUMED]
+Keep raw stderr out of the public response if it can contain paths or credentials; log bounded diagnostics separately. The 500-character cap and redaction policy are implementation requirements for the bounded failure reason contract. [VERIFIED: .planning/phases/03-scan-engine-adapters-queue-worker-service/03-CONTEXT.md D-20–D-22]
 
 ## State of the Art
 
@@ -325,18 +325,22 @@ Keep raw stderr out of the public response if it can contain paths or credential
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | `bullmq@5.80.0` is acceptable after human review despite same-day publication flag | Standard Stack | Dependency gate may require an older 5.x patch |
-| A2 | Redis result encoding can use a hash plus list without a retention requirement | Code Examples | Unbounded Redis growth or API shape mismatch |
-| A3 | Docker fallback can mount a host clone read-only and report parent writable | Common Pitfalls / Code Examples | Fallback integration may need a different path strategy |
-| A4 | A 500-character normalized error cap and public stderr redaction fit the assignment | Code Examples | Error contract could require more diagnostic detail |
+| A1 | `bullmq@5.79.3` is the selected previously reviewed exact BullMQ 5 patch | Standard Stack | Lockfile/package metadata must retain the exact reviewed patch |
+| A2 | Redis result encoding is a hash plus ordered list with a seven-day TTL refreshed on every write | Code Examples | A repository mutation that omits either key or expiry violates the locked contract |
+| A3 | Docker fallback uses official `aquasecurity/trivy:0.69.3`, mounts a host clone read-only and report parent writable, and writes through `/out/<basename>` | Common Pitfalls / Code Examples | The integration harness must enforce the exact argv and host-file visibility contract |
+| A4 | A 500-character normalized error cap and public stderr redaction are the Phase 3 failure contract | Code Examples | Unit and process tests must enforce bounded, sanitized persistence |
 | A5 | `@nestjs/bullmq@11.0.4` is compatible with the project's NestJS 11.1.28 packages | Standard Stack | Installation peer constraints could require a compatible patch adjustment |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Which exact BullMQ 5 patch should be locked?** The registry latest is 5.80.0, but the legitimacy tool flagged same-day recency. Resolve via human checkpoint and lock the chosen patch in package.json/lockfile.
-2. **What Redis retention policy is desired?** Requirements specify Redis persistence but no TTL or cleanup policy. Choose a bounded TTL or document intentional indefinite retention before implementing repository keys.
-3. **How should Docker fallback map paths and pin the Trivy image?** The local command is documented; the Docker mount/image-tag policy is not specified by the repository. Add a focused fallback integration test.
-4. **Should a failed BullMQ job be retried?** Requirements mention retries in project context, but v2 explicitly defers retry/backoff policy. For this phase, do not add new retry semantics unless the planner confirms them; domain status must still become Failed on the first terminal engine failure.
+The following planning questions are resolved by the Phase 3 decisions and executable plans.
+
+| Question | Resolution | Execution evidence |
+|---|---|---|
+| Which exact BullMQ 5 patch should be locked? | Lock **bullmq@5.79.3**, the previously reviewed exact BullMQ 5 patch, in `apps/api/package.json` and `package-lock.json`; do not substitute the newer same-day 5.80.0 release. | `03-01-PLAN.md` Tasks 1–2 |
+| What Redis retention policy is desired? | Use a seven-day TTL for both the scan metadata hash and ordered CRITICAL vulnerability list. Every create, status transition, and vulnerability append refreshes both keys; missing hashes return `null`. | `03-01-PLAN.md` Task 2; D-07–D-12 |
+| How should Docker fallback map paths and pin the Trivy image? | Prefer local Trivy, fall back only on launch/infrastructure failure, and use the official `aquasecurity/trivy:0.69.3`; mount clone `/src:ro`, writable report parent `/out`, ephemeral per-scan cache, and write `/out/<basename>`. Verify host report existence at the adapter readiness seam before parsing. | `03-02-PLAN.md` Task 1; `03-03-PLAN.md` Task 1 |
+| Should a failed BullMQ job be retried? | No automatic attempts, backoff, or retry policy is configured in Phase 3. The worker persists `Failed`, rethrows the original error, and leaves retry policy deferred. | `03-02-PLAN.md` Task 2; `03-03-PLAN.md` Task 3 |
 
 ## Environment Availability
 
@@ -381,9 +385,9 @@ Recommended phase verification remains:
 |---------|--------|---------------------|
 | Shell injection through repository URL/path | Tampering / Elevation | argv array, `shell:false`, `execFile`/Execa; no `exec`. [CITED: https://nodejs.org/api/child_process.html] |
 | Trivy report stdout buffering | Denial of Service | `--output` file and Phase 2 streaming parser; avoid `maxBuffer`-bounded collectors. [CITED: Trivy docs; VERIFIED: Phase 2] |
-| Path traversal or cleanup outside scan root | Tampering | Generate clone/report paths from `SCAN_TMP_DIR` plus generated IDs; do not accept arbitrary output paths from job payload. [ASSUMED] |
+| Path traversal or cleanup outside scan root | Tampering | Generate clone/report paths from `SCAN_TMP_DIR` plus generated IDs; do not accept arbitrary output paths from job payload. [RESOLVED CONTRACT] |
 | Redis eviction corrupting queue/state | Availability | Configure Redis `maxmemory-policy=noeviction`; do not use ioredis `keyPrefix`. [CITED: https://docs.bullmq.io/guide/connections] |
-| Secret leakage in subprocess errors | Information disclosure | Bound/redact stderr before persisting failure reason; log diagnostics separately. [ASSUMED] |
+| Secret leakage in subprocess errors | Information disclosure | Bound/redact stderr before persisting failure reason; log diagnostics separately. [RESOLVED CONTRACT] |
 
 ## Sources
 
@@ -404,12 +408,12 @@ Recommended phase verification remains:
 - npm registry metadata queried 2026-07-10 for `bullmq`, `@nestjs/bullmq`, `ioredis`, and `execa`; exact versions and publish dates recorded above. [VERIFIED: npm registry]
 
 ### Tertiary (LOW confidence)
-- Docker fallback mount layout, error-message truncation/redaction, Redis encoding/TTL, and path-root hardening are explicit assumptions pending project decisions or implementation tests. [ASSUMED]
+- No unresolved research decisions remain. Docker fallback mount layout, error-message truncation/redaction, Redis hash/list encoding and seven-day TTL refreshes, and path-root hardening are resolved project contracts; implementation and integration tests must enforce them. [RESOLVED CONTRACT]
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH for library identity/API and registry versions; MEDIUM for exact BullMQ patch because of same-day release flag.
+- Standard stack: HIGH for library identity/API, registry versions, and the selected BullMQ 5.79.3 patch.
 - Architecture: HIGH — directly constrained by requirements and existing `ScanModule`/entrypoints.
 - Pitfalls: HIGH for BullMQ/ioredis/Node/Trivy documented semantics; MEDIUM for Docker-specific fallback and retention policy.
 
