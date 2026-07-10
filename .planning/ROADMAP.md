@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundations, Domain Types & Strict Config** - Strict-typed NestJS skeleton with two entrypoints and boot-time env validation (completed 2026-07-09)
 - [x] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI (completed 2026-07-10)
-- [ ] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup
+- [x] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup (completed 2026-07-10)
 - [ ] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional
 - [ ] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate
 - [ ] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs
@@ -80,7 +80,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. `ScanService` contains no `fs`/`child_process` imports, and all I/O flows through injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
   6. Integration tests prove Trivy vulnerability findings are a successful scan, genuine Trivy failures are failed scans, and cleanup/error reasons are preserved
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1**
 
@@ -96,7 +96,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-04-PLAN.md — Compiled-worker Docker/Redis integration coverage and concrete CI status contract
+- [x] 03-04-PLAN.md — Compiled-worker Docker/Redis integration coverage and concrete CI status contract
 
 ### Phase 4: Required REST API & Runtime Lifecycle
 
@@ -151,7 +151,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
-| 3. Scan Engine — Adapters, Queue, Worker & Service | 3/4 | In Progress|  |
+| 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete   | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 0/TBD | Not started | - |
 | 5. Packaging, Ops & Assignment Acceptance | 0/TBD | Not started | - |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |

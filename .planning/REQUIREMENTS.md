@@ -18,9 +18,9 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 ### Scan Engine / Worker (ENGINE)
 
 - [x] **ENGINE-01**: A background worker consumes queued scan jobs via BullMQ (`@Processor`/`WorkerHost`) with `concurrency: 1`, decoupled from the API process
-- [ ] **ENGINE-02**: The worker clones the target repository into a unique temp directory (shallow clone) using a subprocess invoked with an argv array (no shell interpolation)
-- [ ] **ENGINE-03**: The worker runs Trivy against the cloned repo, writing the JSON report to a file via Trivy's `--output` flag (never buffering scan stdout in memory)
-- [ ] **ENGINE-04**: The worker auto-detects a local `trivy` binary and falls back to the Docker image when absent
+- [x] **ENGINE-02**: The worker clones the target repository into a unique temp directory (shallow clone) using a subprocess invoked with an argv array (no shell interpolation)
+- [x] **ENGINE-03**: The worker runs Trivy against the cloned repo, writing the JSON report to a file via Trivy's `--output` flag (never buffering scan stdout in memory)
+- [x] **ENGINE-04**: The worker auto-detects a local `trivy` binary and falls back to the Docker image when absent
 - [x] **ENGINE-05**: The worker stream-parses the report with stream-json using a memory-flat deep leaf `Pick` plus object-by-object filtering, storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
 - [x] **ENGINE-06**: Scan status transitions (`Queued → Scanning → Finished/Failed`) are persisted in Redis via a `ScanRepository`, independent of BullMQ's internal job state
 - [x] **ENGINE-07**: The cloned repo and JSON report file are deleted after processing on BOTH success and failure paths (`try/finally`, idempotent)
@@ -116,9 +116,9 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | SCAN-04 | Phase 4 | Pending |
 | SCAN-05 | Phase 4 | Pending |
 | ENGINE-01 | Phase 3 | Complete |
-| ENGINE-02 | Phase 3 | Pending |
-| ENGINE-03 | Phase 3 | Pending |
-| ENGINE-04 | Phase 3 | Pending |
+| ENGINE-02 | Phase 3 | Complete |
+| ENGINE-03 | Phase 3 | Complete |
+| ENGINE-04 | Phase 3 | Complete |
 | ENGINE-05 | Phase 2 | Complete |
 | ENGINE-06 | Phase 3 | Complete |
 | ENGINE-07 | Phase 3 | Complete |
