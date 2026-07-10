@@ -79,10 +79,12 @@ export async function runProcess(
   args: string[],
   captureOutput: boolean,
   timeoutMs = CHILD_TIMEOUT_MS,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<string> {
   validateChildArguments(args);
   const child = spawn(process.execPath, args, {
     shell: false,
+    env,
     stdio: captureOutput ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'inherit', 'inherit'],
   });
   let stdout = '';

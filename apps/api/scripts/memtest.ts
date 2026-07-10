@@ -33,14 +33,14 @@ function validateFixturePath(value: string | undefined): string {
 
 function parseCount(value: string | undefined, name: string): number | undefined {
   if (value === undefined) return undefined;
-  const count = Number(value);
-  if (!Number.isInteger(count) || count < 0) {
+  const normalized = value.trim();
+  if (normalized === '' || !/^\d+$/.test(normalized)) {
     throw new Error(`${name} must be a non-negative integer`);
   }
-  return count;
+  return Number(normalized);
 }
 
-function configuredCriticalCount(): { minimum: number; expected?: number } {
+export function configuredCriticalCount(): { minimum: number; expected?: number } {
   const expected = parseCount(
     process.env.MEMTEST_EXPECTED_CRITICAL_COUNT,
     'MEMTEST_EXPECTED_CRITICAL_COUNT',

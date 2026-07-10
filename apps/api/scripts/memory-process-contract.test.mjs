@@ -57,6 +57,57 @@ test('memtest fails closed when parsing produces no CRITICAL vulnerabilities', a
   }
 });
 
+test('memtest rejects blank count environment variables and preserves valid counts', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-memory-counts-'));
+  const fixturePath = join(directory, 'critical.json');
+  try {
+    await writeFile(
+      fixturePath,
+      JSON.stringify({
+        Results: [{
+          Vulnerabilities: [{
+            VulnerabilityID: 'CVE-2026-0001',
+            PkgName: 'fixture-package',
+            InstalledVersion: '1.0.0',
+            Severity: 'CRITICAL',
+            Title: 'Fixture vulnerability',
+            PrimaryURL: 'https://example.test/CVE-2026-0001',
+          }],
+        }],
+      }),
+    );
+    for (const name of ['MEMTEST_EXPECTED_CRITICAL_COUNT', 'MEMTEST_MIN_CRITICAL_COUNT']) {
+      const environment = { ...process.env };
+      delete environment.MEMTEST_EXPECTED_CRITICAL_COUNT;
+      delete environment.MEMTEST_MIN_CRITICAL_COUNT;
+      environment[name] = ' \t ';
+      await assert.rejects(
+        runProcess(
+          ['--import', 'tsx', memtestPath, fixturePath],
+          true,
+          undefined,
+          environment,
+        ),
+        new RegExp(`${name} must be a non-negative integer`),
+      );
+    }
+
+    const output = await runProcess(
+      ['--import', 'tsx', memtestPath, fixturePath],
+      true,
+      undefined,
+      {
+        ...process.env,
+        MEMTEST_EXPECTED_CRITICAL_COUNT: ' 1 ',
+        MEMTEST_MIN_CRITICAL_COUNT: ' 2 ',
+      },
+    );
+    assert.match(output, /"criticalCount":1/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('child failures and timeouts reject without leaving the caller hanging', async () => {
   await assert.rejects(
     runProcess(['-e', 'process.exit(7)'], true, 1_000),
