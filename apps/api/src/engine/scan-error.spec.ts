@@ -44,8 +44,7 @@ describe('TempArtifactCleanerAdapter', () => {
 
   it('ignores ENOENT for already-missing paths', async () => {
     const fs: CleanerFs = {
-      rm: (): Promise<void> =>
-        Promise.reject(codedError('missing', 'ENOENT')),
+      rm: (): Promise<void> => Promise.reject(codedError('missing', 'ENOENT')),
     };
     const cleaner = new TempArtifactCleanerAdapter({ fs });
 
@@ -85,15 +84,15 @@ describe('TempArtifactCleanerAdapter', () => {
 
 describe('classifyScanError', () => {
   it('distinguishes clone, Trivy, and report-parse categories by stage', () => {
-    expect(classifyScanError('clone', new Error('git clone failed')).category).toBe(
-      'clone',
-    );
-    expect(classifyScanError('trivy', new Error('trivy crashed')).category).toBe(
-      'trivy',
-    );
-    expect(classifyScanError('parse', new Error('bad json leaf')).category).toBe(
-      'parse',
-    );
+    expect(
+      classifyScanError('clone', new Error('git clone failed')).category,
+    ).toBe('clone');
+    expect(
+      classifyScanError('trivy', new Error('trivy crashed')).category,
+    ).toBe('trivy');
+    expect(
+      classifyScanError('parse', new Error('bad json leaf')).category,
+    ).toBe('parse');
   });
 
   it('classifies ENOSPC as disk-full regardless of stage or error shape', () => {
