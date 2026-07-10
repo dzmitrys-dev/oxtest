@@ -68,6 +68,9 @@ import { ScanModule } from './scan/scan.module';
 
         const nestLogger = new Logger('ScanEngine');
         const logger: EngineLogger = {
+          info: (message: string): void => {
+            nestLogger.log(message);
+          },
           warn: (message: string): void => {
             nestLogger.warn(message);
           },

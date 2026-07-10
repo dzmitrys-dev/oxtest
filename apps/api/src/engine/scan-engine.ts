@@ -103,8 +103,16 @@ export class ScanEngine {
     this.logger = deps.logger ?? noopLogger;
   }
 
-  async run(job: ScanJob): Promise<void> {
+  /**
+   * Run one scan's lifecycle. `logger` is the per-job `scanId`-bound sink the
+   * worker builds via `engineLoggerFor(baseLogger, job.data.scanId)` (D-02); it
+   * overrides the singleton fallback so every lifecycle line carries `scanId`
+   * as a structured field. `scanId` is NEVER interpolated into the message —
+   * the pino child binding attaches it (log-injection guard, T-05-01-02).
+   */
+  async run(job: ScanJob, logger?: EngineLogger): Promise<void> {
     const { scanId, repoUrl } = job;
+    const log = logger ?? this.logger;
 
     // Allocation happens BEFORE the engine try/finally. The allocator is the
     // exclusive owner of both paths and cleans any partial allocation itself if
@@ -113,7 +121,7 @@ export class ScanEngine {
     try {
       allocation = await this.allocator.allocate(scanId);
     } catch (error) {
-      await this.persistFailed(scanId, 'clone', error);
+      await this.persistFailed(scanId, 'clone', error, log);
       throw error;
     }
 
@@ -123,32 +131,39 @@ export class ScanEngine {
     let stage: ScanErrorStage = 'clone';
     try {
       await this.repository.markScanning(scanId);
+      log.info('scan scanning');
 
       stage = 'clone';
+      log.info('clone started');
       await this.cloner.clone(repoUrl, cloneDir);
+      log.info('clone completed');
 
       stage = 'trivy';
+      log.info('trivy started');
       await this.trivy.run(cloneDir, reportPath, {
         onReportReady: this.onReportReady,
       });
+      log.info('trivy completed');
 
       // Report-readiness (via the Trivy runner) has fully resolved before the
       // first `parse` call. Consume ONE yielded CRITICAL vulnerability at a
       // time, awaiting each append before requesting the next — never buffered.
       stage = 'parse';
+      log.info('parse started');
       for await (const vulnerability of this.parser.parse(reportPath)) {
         await this.repository.appendVulnerability(scanId, vulnerability);
       }
 
       // Finished only after parser completion and all awaited appends.
       await this.repository.markFinished(scanId);
+      log.info('scan finished');
     } catch (error) {
-      await this.persistFailed(scanId, stage, error);
+      await this.persistFailed(scanId, stage, error, log);
       // Original-error precedence: rethrow the first engine failure to BullMQ.
       // No retry/backoff is configured (D-19) — retry policy is deferred.
       throw error;
     } finally {
-      await this.safeCleanup(cloneDir, reportPath);
+      await this.safeCleanup(cloneDir, reportPath, log);
     }
   }
 
@@ -161,12 +176,13 @@ export class ScanEngine {
     scanId: string,
     stage: ScanErrorStage,
     error: unknown,
+    log: EngineLogger,
   ): Promise<void> {
     const reason = classifyScanError(stage, error);
     try {
       await this.repository.markFailed(scanId, reason);
     } catch (persistError) {
-      this.logger.error(
+      log.error(
         `Failed to persist Failed state for scan ${scanId}: ${toMessage(persistError)}`,
       );
     }
@@ -180,13 +196,12 @@ export class ScanEngine {
   private async safeCleanup(
     cloneDir: string,
     reportPath: string,
+    log: EngineLogger,
   ): Promise<void> {
     try {
       await this.cleaner.remove(cloneDir, reportPath);
     } catch (cleanupError) {
-      this.logger.warn(
-        `Cleanup failed for scan artifacts: ${toMessage(cleanupError)}`,
-      );
+      log.warn(`Cleanup failed for scan artifacts: ${toMessage(cleanupError)}`);
     }
   }
 }
