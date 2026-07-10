@@ -29,5 +29,5 @@ jobs:
            }
            trap cleanup EXIT
            npm run gen:fixture --workspace apps/api -- --size-mb 512 --output /tmp/oxtest-phase2-memory.json
-          test "$(stat -c %s /tmp/oxtest-phase2-memory.json)" -ge "$((512*1024*1024))"
-          node --max-old-space-size=150 apps/api/dist/scripts/memtest.js /tmp/oxtest-phase2-memory.json
+            test "$(stat -c %s /tmp/oxtest-phase2-memory.json)" -ge "$((512*1024*1024))"
+            node --max-old-space-size=150 apps/api/dist/scripts/memtest.js /tmp/oxtest-phase2-memory.json
