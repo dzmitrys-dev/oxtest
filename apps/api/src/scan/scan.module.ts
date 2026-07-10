@@ -1,5 +1,5 @@
 import { BullModule, getQueueToken } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 
@@ -40,11 +40,22 @@ import { BASE_LOGGER, SCAN_QUEUE, SCAN_QUEUE_NAME } from './scan.types';
       // Never set ioredis keyPrefix (BullMQ/repository constraint, T-03-03).
       provide: REDIS_CLIENT,
       inject: [ConfigService],
-      useFactory: (config: ConfigService): Redis =>
-        new Redis({
+      useFactory: (config: ConfigService): Redis => {
+        const client = new Redis({
           host: config.getOrThrow<string>('REDIS_HOST'),
           port: config.getOrThrow<number>('REDIS_PORT'),
-        }),
+        });
+        // WR-03 (D-13): a non-throwing 'error' listener. ioredis emits 'error'
+        // on every connection drop/reconnect; with NO listener attached Node
+        // treats it as an unhandled 'error' event and crashes the process. This
+        // keeps a transient Redis blip from killing the API/worker (compose /
+        // reconnect resilience, T-05-01-04). Diagnostics stay in logs only.
+        const logger = new Logger('RedisClient');
+        client.on('error', (err: Error) => {
+          logger.warn(`Redis connection error: ${err.message}`);
+        });
+        return client;
+      },
     },
     { provide: SCAN_REPOSITORY, useClass: ScanRepositoryAdapter },
     // Bridge BullMQ's own queue token to the framework-neutral SCAN_QUEUE token

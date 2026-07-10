@@ -22,12 +22,18 @@ export class GithubUrlPipe implements PipeTransform<unknown, CreateScanDto> {
         ? (value as Record<string, unknown>).repoUrl
         : undefined;
 
-    if (parseGithubUrl(repoUrl) === null) {
+    const parsed = parseGithubUrl(repoUrl);
+    if (parsed === null) {
       throw new BadRequestException(
         'repoUrl must be an https://github.com/{owner}/{repo} URL',
       );
     }
 
-    return { repoUrl: repoUrl as string };
+    // WR-01 (D-13): return the CANONICAL form built from the parsed parts, not
+    // the raw request string. This makes the enqueued/cloned URL provably equal
+    // to what was validated — closing the validate-vs-use parser differential
+    // (`.git` suffix, `www.` host, trailing slash all normalized here; V5 /
+    // T-05-01-03).
+    return { repoUrl: `https://github.com/${parsed.owner}/${parsed.repo}` };
   }
 }

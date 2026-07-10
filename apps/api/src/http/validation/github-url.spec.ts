@@ -67,9 +67,9 @@ describe('GithubUrlPipe', () => {
   });
 
   it('WR-01: an already-canonical URL round-trips unchanged', () => {
-    expect(pipe.transform({ repoUrl: 'https://github.com/octo-cat/repo' })).toEqual(
-      { repoUrl: 'https://github.com/octo-cat/repo' },
-    );
+    expect(
+      pipe.transform({ repoUrl: 'https://github.com/octo-cat/repo' }),
+    ).toEqual({ repoUrl: 'https://github.com/octo-cat/repo' });
   });
 
   it('WR-01: strips a trailing .git so the used string equals the validated form', () => {
@@ -85,9 +85,9 @@ describe('GithubUrlPipe', () => {
   });
 
   it('WR-01: normalizes a trailing slash to the canonical form', () => {
-    expect(pipe.transform({ repoUrl: 'https://github.com/owner/repo/' })).toEqual(
-      { repoUrl: 'https://github.com/owner/repo' },
-    );
+    expect(
+      pipe.transform({ repoUrl: 'https://github.com/owner/repo/' }),
+    ).toEqual({ repoUrl: 'https://github.com/owner/repo' });
   });
 
   it('throws BadRequestException on an invalid repoUrl', () => {

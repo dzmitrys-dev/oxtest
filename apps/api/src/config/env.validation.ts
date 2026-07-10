@@ -43,12 +43,15 @@ export const envValidationSchema = Joi.object({
     .default('development'),
   PORT: Joi.number().port().default(3000),
 
-  // Bounded graceful-shutdown grace window in milliseconds (D-12, ERR-05).
-  // Default 8000 is deliberately < Docker's 10s SIGTERM→SIGKILL window so the
-  // worker force-closes and exits cleanly before an external SIGKILL. Extends
-  // the OPS-03 fail-closed schema: an out-of-range value refuses to boot rather
-  // than silently widening the drain past the container stop grace.
-  SHUTDOWN_GRACE_MS: Joi.number().integer().min(0).max(60000).default(8000),
+  // Bounded graceful-shutdown grace window in milliseconds (D-12, ERR-05,
+  // WR-02/D-13). Default 8000 is deliberately < Docker's 10s SIGTERM→SIGKILL
+  // stop window so the worker force-closes and exits cleanly before an external
+  // SIGKILL. The max is capped at 9000 (not 60000) so even the largest allowed
+  // grace — plus the backstop margin — still closes before Docker's 10s stop
+  // grace, never being hard-killed mid-drain. Extends the OPS-03 fail-closed
+  // schema: an out-of-range value refuses to boot rather than silently widening
+  // the drain past the container stop grace.
+  SHUTDOWN_GRACE_MS: Joi.number().integer().min(0).max(9000).default(8000),
 
   REDIS_HOST: Joi.string().required(),
   REDIS_PORT: Joi.number().port().required(),
