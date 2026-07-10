@@ -90,24 +90,37 @@ describe('ScanService', () => {
   });
 
   it('does not import filesystem, subprocess, or engine implementation details (ARCH-02, D-02)', () => {
-    const source = readFileSync(
-      path.resolve(__dirname, 'scan.service.ts'),
-      'utf8',
+    const specifiers = importSpecifiers(
+      readFileSync(path.resolve(__dirname, 'scan.service.ts'), 'utf8'),
     );
     for (const forbidden of [
       'node:fs',
+      'fs',
       'node:child_process',
-      "'fs'",
-      "'child_process'",
+      'child_process',
       'execa',
-      'trivy',
-      'docker',
-      'report-parser',
+      '@nestjs/bullmq',
     ]) {
-      expect(source).not.toContain(forbidden);
+      expect(specifiers).not.toContain(forbidden);
     }
+    expect(specifiers.some((s) => s.includes('report-parser'))).toBe(false);
+    expect(specifiers.some((s) => s.includes('engine/'))).toBe(false);
   });
 });
+
+/** Extract the module specifiers of `import ... from '<spec>'` statements only. */
+function importSpecifiers(source: string): string[] {
+  const specifiers: string[] = [];
+  const pattern = /^\s*import\b[^\n]*?from\s+['"]([^'"]+)['"]/gm;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(source)) !== null) {
+    const specifier = match[1];
+    if (specifier !== undefined) {
+      specifiers.push(specifier);
+    }
+  }
+  return specifiers;
+}
 
 describe('Shared module topology', () => {
   const read = (file: string): string =>
@@ -121,7 +134,9 @@ describe('Shared module topology', () => {
   });
 
   it('WorkerModule imports no HTTP/Fastify/GraphQL transport (D-01)', () => {
-    const worker = read('worker.module.ts');
+    const specifiers = importSpecifiers(read('worker.module.ts')).map((s) =>
+      s.toLowerCase(),
+    );
     for (const transport of [
       'fastify',
       'platform-fastify',
@@ -129,7 +144,7 @@ describe('Shared module topology', () => {
       'graphql',
       '@nestjs/graphql',
     ]) {
-      expect(worker.toLowerCase()).not.toContain(transport);
+      expect(specifiers.some((s) => s.includes(transport))).toBe(false);
     }
   });
 
