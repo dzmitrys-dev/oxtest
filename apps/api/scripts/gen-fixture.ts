@@ -28,7 +28,8 @@ async function generateFixture(
       VulnerabilityID: `CVE-SYN-${index}`,
       PkgName: 'synthetic-pkg',
       InstalledVersion: '1.0.0',
-      Severity: index % 10 === 0 ? 'CRITICAL' : 'LOW',
+      Severity:
+        index % 10 === 0 ? 'CRITICAL' : index % 10 === 1 ? 'HIGH' : 'LOW',
       Title: 'Synthetic vulnerability for memory fixture',
       PrimaryURL: 'https://example.invalid/cve',
     });
