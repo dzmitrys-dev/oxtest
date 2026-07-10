@@ -80,7 +80,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. `ScanService` contains no `fs`/`child_process` imports, and all I/O flows through injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
   6. Integration tests prove Trivy vulnerability findings are a successful scan, genuine Trivy failures are failed scans, and cleanup/error reasons are preserved
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 **Wave 1**
 
@@ -92,7 +92,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-03-PLAN.md — Concurrency-one worker lifecycle, shared module wiring, and compiled readiness contract
+- [x] 03-03-PLAN.md — Concurrency-one worker lifecycle, shared module wiring, and compiled readiness contract
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -151,7 +151,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
-| 3. Scan Engine — Adapters, Queue, Worker & Service | 2/4 | In Progress|  |
+| 3. Scan Engine — Adapters, Queue, Worker & Service | 3/4 | In Progress|  |
 | 4. Required REST API & Runtime Lifecycle | 0/TBD | Not started | - |
 | 5. Packaging, Ops & Assignment Acceptance | 0/TBD | Not started | - |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |

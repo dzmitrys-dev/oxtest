@@ -23,7 +23,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 - [ ] **ENGINE-04**: The worker auto-detects a local `trivy` binary and falls back to the Docker image when absent
 - [x] **ENGINE-05**: The worker stream-parses the report with stream-json using a memory-flat deep leaf `Pick` plus object-by-object filtering, storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
 - [x] **ENGINE-06**: Scan status transitions (`Queued → Scanning → Finished/Failed`) are persisted in Redis via a `ScanRepository`, independent of BullMQ's internal job state
-- [ ] **ENGINE-07**: The cloned repo and JSON report file are deleted after processing on BOTH success and failure paths (`try/finally`, idempotent)
+- [x] **ENGINE-07**: The cloned repo and JSON report file are deleted after processing on BOTH success and failure paths (`try/finally`, idempotent)
 
 ### Memory Efficiency (MEM)
 
@@ -41,10 +41,10 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Error Handling (ERR)
 
-- [ ] **ERR-01**: A Trivy non-zero exit is interpreted correctly — "vulnerabilities found" is a success path, a genuine tool failure marks the job `Failed` with a captured reason
-- [ ] **ERR-02**: Clone failure (invalid/private/nonexistent repo) marks the job `Failed` with a clear reason and still cleans up
-- [ ] **ERR-03**: Disk-full (`ENOSPC`) during clone/scan is caught, marks the job `Failed`, and cleanup runs
-- [ ] **ERR-04**: A mid-stream parse error propagates through `stream/promises` `pipeline()` (no swallowed errors), marks `Failed`, and cleans up
+- [x] **ERR-01**: A Trivy non-zero exit is interpreted correctly — "vulnerabilities found" is a success path, a genuine tool failure marks the job `Failed` with a captured reason
+- [x] **ERR-02**: Clone failure (invalid/private/nonexistent repo) marks the job `Failed` with a clear reason and still cleans up
+- [x] **ERR-03**: Disk-full (`ENOSPC`) during clone/scan is caught, marks the job `Failed`, and cleanup runs
+- [x] **ERR-04**: A mid-stream parse error propagates through `stream/promises` `pipeline()` (no swallowed errors), marks `Failed`, and cleans up
 - [ ] **ERR-05**: The service shuts down gracefully on SIGTERM/SIGINT — draining/closing the worker and Redis connections
 
 ### Type Safety (TYPE)
@@ -121,7 +121,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ENGINE-04 | Phase 3 | Pending |
 | ENGINE-05 | Phase 2 | Complete |
 | ENGINE-06 | Phase 3 | Complete |
-| ENGINE-07 | Phase 3 | Pending |
+| ENGINE-07 | Phase 3 | Complete |
 | MEM-01 | Phase 2 | Complete |
 | MEM-02 | Phase 2 | Complete |
 | MEM-03 | Phase 2 | Complete |
@@ -130,10 +130,10 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ARCH-02 | Phase 3 | Complete |
 | ARCH-03 | Phase 3 | Complete |
 | ARCH-04 | Phase 1 | Complete |
-| ERR-01 | Phase 3 | Pending |
-| ERR-02 | Phase 3 | Pending |
-| ERR-03 | Phase 3 | Pending |
-| ERR-04 | Phase 3 | Pending |
+| ERR-01 | Phase 3 | Complete |
+| ERR-02 | Phase 3 | Complete |
+| ERR-03 | Phase 3 | Complete |
+| ERR-04 | Phase 3 | Complete |
 | ERR-05 | Phase 4 | Pending |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |

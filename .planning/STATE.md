@@ -6,14 +6,14 @@ current_phase: 03
 current_phase_name: scan-engine-adapters-queue-worker-service
 status: executing
 stopped_at: Completed 03-02-PLAN.md (engine adapters)
-last_updated: "2026-07-10T13:10:00.478Z"
+last_updated: "2026-07-10T13:44:02.782Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 33
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 03 (scan-engine-adapters-queue-worker-service) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 03 execution started
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 13 | 3 tasks | 14 files |
 | Phase 03 P01 | 40min | 3 tasks | 11 files |
 | Phase 03 P02 | 25min | 2 tasks | 13 files |
+| Phase 03 P03 | 42min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 03-01]: Structured ScanFailureReason {category, detail} added to domain; repository caps detail at 500 chars at persistence (D-20)
 - [Phase ?]: [Phase 03-02]: Engine adapters framework-free plain classes with spawn-based SubprocessRunner seam (shell:false, stdout ignored); Plan 03 wires via useFactory to keep @nestjs/bullmq out of jest graph
 - [Phase ?]: [Phase 03-02]: Used node:child_process.spawn instead of ESM-only execa (D-15 permits execFile/spawn); Trivy Docker fallback pinned aquasecurity/trivy:0.69.3 with /src:ro + /out mounts and tmpfs ephemeral cache
+- [Phase 03-03]: Worker split — thin @Processor WorkerHost shell delegates to a plain framework-free ScanEngine; all lifecycle logic + unit tests target the engine to avoid the @swc/core+@nestjs/bullmq jest panic (shell/wiring validated only by compiled worker-process-contract.mjs)
+- [Phase 03-03]: Redis role-split needs no ScanModule edit — plain-options forRootAsync lets BullMQ auto-null the blocking worker connection while the producer queue keeps finite retries; worker.ts uses logger:false+abortOnError:false for marker-first stdout + fail-closed diagnostics
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T13:10:00.471Z
+Last session: 2026-07-10T13:42:59.615Z
 Stopped at: Completed 03-02-PLAN.md (engine adapters)
 Resume file: None
