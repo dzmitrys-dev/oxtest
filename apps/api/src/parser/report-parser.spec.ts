@@ -102,4 +102,10 @@ describe('ReportParser', () => {
       path: reportPath,
     });
   });
+
+  it('allows a valid report with no vulnerabilities to emit no results', async () => {
+    await expect(
+      parseReport({ Results: [{ Target: 'empty', Vulnerabilities: [] }] }),
+    ).resolves.toBeUndefined();
+  });
 });

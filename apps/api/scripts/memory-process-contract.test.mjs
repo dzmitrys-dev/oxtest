@@ -8,6 +8,7 @@ import test from 'node:test';
 const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'utf8');
 const { runCase, runProcess } = await import('./memtest-sweep.ts');
 const generatorPath = new URL('./gen-fixture.ts', import.meta.url).pathname;
+const memtestPath = new URL('./memtest.ts', import.meta.url).pathname;
 
 function runGenerator(args) {
   return runProcess(['--import', 'tsx', generatorPath, ...args], true);
@@ -37,6 +38,20 @@ test('memory workflow is valid YAML and keeps the authoritative heap cap', async
     await readFile(new URL('../../../.github/workflows/memory.yml', import.meta.url), 'utf8'),
     /node --max-old-space-size=150 apps\/api\/dist\/scripts\/memtest\.js/,
   );
+});
+
+test('memtest fails closed when parsing produces no CRITICAL vulnerabilities', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-empty-memory-'));
+  const fixturePath = join(directory, 'empty.json');
+  try {
+    await writeFile(fixturePath, JSON.stringify({ Results: [{ Vulnerabilities: [] }] }));
+    await assert.rejects(
+      runProcess(['--import', 'tsx', memtestPath, fixturePath], true),
+      /parsed 0 CRITICAL vulnerabilities; expected at least 1/,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('child failures and timeouts reject without leaving the caller hanging', async () => {
@@ -118,7 +133,13 @@ test('fixture generation produces both CRITICAL and HIGH records', async () => {
       '--output', fixturePath,
     ], true);
     assert.match(child, /"vulnerabilities":/);
+    const generated = JSON.parse(child.trim().split('\n').at(-1));
     const fixture = JSON.parse(await readFile(fixturePath, 'utf8'));
+    const criticalCount = fixture.Results[0].Vulnerabilities.filter(
+      (item) => item.Severity === 'CRITICAL',
+    ).length;
+    assert.equal(generated.criticalVulnerabilities, criticalCount);
+    assert.ok(generated.criticalVulnerabilities > 0);
     const severities = new Set(fixture.Results[0].Vulnerabilities.map((item) => item.Severity));
     assert.ok(severities.has('CRITICAL'));
     assert.ok(severities.has('HIGH'));

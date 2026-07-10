@@ -28,6 +28,8 @@ jobs:
              exit "$status"
            }
            trap cleanup EXIT
-           npm run gen:fixture --workspace apps/api -- --size-mb 512 --output /tmp/oxtest-phase2-memory.json
+            generator_output="$(npm run gen:fixture --workspace apps/api -- --size-mb 512 --output /tmp/oxtest-phase2-memory.json)"
+            expected_critical_count="$(printf '%s\n' "$generator_output" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => { const result = JSON.parse(input.trim().split(/\\n/).at(-1)); if (!Number.isInteger(result.criticalVulnerabilities) || result.criticalVulnerabilities <= 0) process.exit(1); process.stdout.write(String(result.criticalVulnerabilities)); });")"
             test "$(stat -c %s /tmp/oxtest-phase2-memory.json)" -ge "$((512*1024*1024))"
+            export MEMTEST_EXPECTED_CRITICAL_COUNT="$expected_critical_count"
             node --max-old-space-size=150 apps/api/dist/scripts/memtest.js /tmp/oxtest-phase2-memory.json

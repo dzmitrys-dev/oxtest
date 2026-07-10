@@ -39,6 +39,7 @@ async function generateFixture(
   const targetBytes = targetMegabytes * 1024 * 1024;
   let writtenBytes = 0;
   let index = 0;
+  let criticalVulnerabilities = 0;
 
   try {
     stream = createWriteStream(temporaryPath, { flags: 'wx' });
@@ -59,6 +60,7 @@ async function generateFixture(
       const chunk = `${index === 0 ? '' : ','}${vulnerability}`;
       await writeChunk(stream, chunk);
       writtenBytes += Buffer.byteLength(chunk);
+      if (index % 10 === 0) criticalVulnerabilities += 1;
       index += 1;
     }
     await writeChunk(stream, ']}]}');
@@ -67,7 +69,7 @@ async function generateFixture(
     const bytes = statSync(temporaryPath).size;
     await rename(temporaryPath, outputPath);
     committed = true;
-    console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index }));
+    console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index, criticalVulnerabilities }));
   } catch (error: unknown) {
     stream?.destroy();
     if (!committed) {

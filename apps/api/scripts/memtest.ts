@@ -6,6 +6,7 @@ import { ReportParser } from '../src/parser/report-parser';
 // above the 150MB V8 heap cap while still failing on unbounded report materialization.
 const RSS_THRESHOLD_MB = 240;
 const SAMPLE_INTERVAL_MS = 200;
+const DEFAULT_MIN_CRITICAL_COUNT = 1;
 
 interface MemoryPeaks {
   rss: number;
@@ -30,7 +31,34 @@ function validateFixturePath(value: string | undefined): string {
   return value;
 }
 
-export async function runMemoryTest(fixturePath: string): Promise<void> {
+function parseCount(value: string | undefined, name: string): number | undefined {
+  if (value === undefined) return undefined;
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return count;
+}
+
+function configuredCriticalCount(): { minimum: number; expected?: number } {
+  const expected = parseCount(
+    process.env.MEMTEST_EXPECTED_CRITICAL_COUNT,
+    'MEMTEST_EXPECTED_CRITICAL_COUNT',
+  );
+  const configuredMinimum = parseCount(
+    process.env.MEMTEST_MIN_CRITICAL_COUNT,
+    'MEMTEST_MIN_CRITICAL_COUNT',
+  );
+  return {
+    minimum: expected ?? configuredMinimum ?? DEFAULT_MIN_CRITICAL_COUNT,
+    ...(expected === undefined ? {} : { expected }),
+  };
+}
+
+export async function runMemoryTest(
+  fixturePath: string,
+  criticalCountConfig = configuredCriticalCount(),
+): Promise<void> {
   const peaks: MemoryPeaks = { rss: 0, heapUsed: 0, external: 0 };
   sample(peaks);
   const sampler = setInterval(() => sample(peaks), SAMPLE_INTERVAL_MS);
@@ -43,6 +71,20 @@ export async function runMemoryTest(fixturePath: string): Promise<void> {
   } finally {
     clearInterval(sampler);
     sample(peaks);
+  }
+
+  if (criticalCount < criticalCountConfig.minimum) {
+    throw new Error(
+      `Memory proof parsed ${criticalCount} CRITICAL vulnerabilities; expected at least ${criticalCountConfig.minimum}`,
+    );
+  }
+  if (
+    criticalCountConfig.expected !== undefined &&
+    criticalCount !== criticalCountConfig.expected
+  ) {
+    throw new Error(
+      `Memory proof parsed ${criticalCount} CRITICAL vulnerabilities; expected exactly ${criticalCountConfig.expected}`,
+    );
   }
 
   const metrics = {
