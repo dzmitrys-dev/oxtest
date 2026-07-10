@@ -1,10 +1,10 @@
 import { existsSync, statSync } from 'node:fs';
 
 import { ReportParser } from '../src/parser/report-parser';
+import { assertRssWithinThreshold, RSS_THRESHOLD_MB } from './memory-threshold';
 
 // RSS includes native stream buffers and the Node runtime; keep a documented margin
 // above the 150MB V8 heap cap while still failing on unbounded report materialization.
-const RSS_THRESHOLD_MB = 240;
 const SAMPLE_INTERVAL_MS = 200;
 const DEFAULT_MIN_CRITICAL_COUNT = 1;
 
@@ -37,7 +37,11 @@ function parseCount(value: string | undefined, name: string): number | undefined
   if (normalized === '' || !/^\d+$/.test(normalized)) {
     throw new Error(`${name} must be a non-negative integer`);
   }
-  return Number(normalized);
+  const count = Number(normalized);
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new Error(`${name} must be a non-negative safe integer`);
+  }
+  return count;
 }
 
 export function configuredCriticalCount(): { minimum: number; expected?: number } {
@@ -87,6 +91,7 @@ export async function runMemoryTest(
     );
   }
 
+  assertRssWithinThreshold(peaks.rss);
   const metrics = {
     fixturePath,
     criticalCount,
@@ -96,9 +101,6 @@ export async function runMemoryTest(
     rssThresholdMb: RSS_THRESHOLD_MB,
   };
   console.log(JSON.stringify(metrics));
-  if (metrics.peakRssMb > RSS_THRESHOLD_MB) {
-    throw new Error(`Peak RSS ${metrics.peakRssMb}MB exceeds ${RSS_THRESHOLD_MB}MB threshold`);
-  }
 }
 
 async function main(): Promise<void> {

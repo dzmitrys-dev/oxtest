@@ -9,6 +9,7 @@ const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'u
 const { runCase, runProcess } = await import('./memtest-sweep.ts');
 const generatorPath = new URL('./gen-fixture.ts', import.meta.url).pathname;
 const memtestPath = new URL('./memtest.ts', import.meta.url).pathname;
+const { assertRssWithinThreshold } = await import('./memory-threshold.ts');
 
 function runGenerator(args) {
   return runProcess(['--import', 'tsx', generatorPath, ...args], true);
@@ -106,6 +107,38 @@ test('memtest rejects blank count environment variables and preserves valid coun
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('memtest rejects unsafe and overflowing count environment variables', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-memory-unsafe-counts-'));
+  const fixturePath = join(directory, 'critical.json');
+  try {
+    await writeFile(
+      fixturePath,
+      JSON.stringify({ Results: [{ Vulnerabilities: [{ Severity: 'CRITICAL' }] }] }),
+    );
+    for (const value of ['9007199254740992', '9'.repeat(400)]) {
+      const environment = {
+        ...process.env,
+        MEMTEST_EXPECTED_CRITICAL_COUNT: value,
+      };
+      await assert.rejects(
+        runProcess(['--import', 'tsx', memtestPath, fixturePath], true, undefined, environment),
+        /MEMTEST_EXPECTED_CRITICAL_COUNT must be a non-negative safe integer/,
+      );
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('RSS threshold rejects fractional-byte overage before metric rounding', () => {
+  const thresholdBytes = 240 * 1024 * 1024;
+  assert.doesNotThrow(() => assertRssWithinThreshold(thresholdBytes));
+  assert.throws(
+    () => assertRssWithinThreshold(thresholdBytes + 0.04 * 1024 * 1024),
+    /Peak RSS 240MB exceeds 240MB threshold/,
+  );
 });
 
 test('child failures and timeouts reject without leaving the caller hanging', async () => {
