@@ -66,6 +66,12 @@ export interface AdapterFactoryOptions {
   /** Validated `SCAN_TMP_DIR` root — the allocator's exclusive base. */
   scanTmpDir: string;
   fault?: EngineTestFault;
+  /**
+   * Validated `SCAN_GIT_ALLOWED_PROTOCOLS` (CR-01) forwarded to the real clone
+   * adapter as git's `GIT_ALLOW_PROTOCOL` transport allowlist. Absent → the
+   * adapter's fail-closed `https`-only default.
+   */
+  gitAllowedProtocols?: string;
 }
 
 /**
@@ -95,7 +101,9 @@ export function createEngineAdapters(
       allocator: new ScanPathAllocatorAdapter({
         scanTmpDir: options.scanTmpDir,
       }),
-      cloner: new RepoClonerAdapter(),
+      cloner: new RepoClonerAdapter({
+        allowedProtocols: options.gitAllowedProtocols,
+      }),
       trivy: new TrivyRunnerAdapter(),
       parser: new ReportParser(),
       cleaner: new TempArtifactCleanerAdapter(),

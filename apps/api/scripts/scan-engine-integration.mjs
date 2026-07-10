@@ -240,6 +240,13 @@ function spawnWorker({ port, scanTmpDir, fault, readyMarker }) {
       SCAN_TMP_DIR: scanTmpDir,
       SCAN_ENGINE_TEST_FAULT: fault,
       SCAN_ENGINE_READY_MARKER: readyMarker,
+      // CR-01: production defaults to `https` only. This harness clones the
+      // committed `sample-repo.bundle` over git's `file` transport, so it — and
+      // ONLY it, as TRUSTED local test infrastructure — widens the allowlist to
+      // `https:file`. Production never enables `file`. This deliberately keeps
+      // the real clone adapter's transport hardening exercised end-to-end so a
+      // future global tightening cannot silently break the trusted bundle clone.
+      SCAN_GIT_ALLOWED_PROTOCOLS: 'https:file',
     },
   });
 

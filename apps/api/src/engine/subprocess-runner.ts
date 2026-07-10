@@ -13,6 +13,14 @@ export interface SubprocessRunOptions {
    * `false` (never a boolean) so a caller cannot accidentally opt into a shell.
    */
   readonly shell: false;
+  /**
+   * Locked-down environment overrides MERGED over `process.env` for this child
+   * only (T-03-05, CR-01). The clone adapter uses this to force git's transport
+   * allowlist (`GIT_ALLOW_PROTOCOL`), neutralize user-policy transports
+   * (`GIT_PROTOCOL_FROM_USER=0`), and disable credential prompts
+   * (`GIT_TERMINAL_PROMPT=0`). Absent → the child inherits `process.env` verbatim.
+   */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 export interface SubprocessRunner {
@@ -84,6 +92,10 @@ export function createSpawnSubprocessRunner(): SubprocessRunner {
         const child = spawn(file, [...args], {
           shell: options.shell,
           stdio: ['ignore', 'ignore', 'pipe'],
+          // Locked-down env is MERGED over the inherited environment so the child
+          // keeps PATH/HOME while the caller's security overrides (e.g. git's
+          // transport allowlist) always win. Absent → inherit `process.env`.
+          env: options.env ? { ...process.env, ...options.env } : process.env,
         });
 
         let stderr = '';

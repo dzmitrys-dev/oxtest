@@ -98,8 +98,10 @@ test('adapter-factory fault seam is opt-in and fail-closed; production builds on
   assert.match(src, /throw new Error\(\s*[\s\S]*Invalid SCAN_ENGINE_TEST_FAULT/);
   // fault 'none' → the real adapters (RepoClonerAdapter, TrivyRunnerAdapter, …).
   assert.match(src, /if\s*\(\s*fault === 'none'\s*\)/);
-  assert.match(src, /new TrivyRunnerAdapter\(\)/);
-  assert.match(src, /new RepoClonerAdapter\(\)/);
+  assert.match(src, /new TrivyRunnerAdapter\(/);
+  // The real clone adapter is constructed with the validated git transport
+  // allowlist injected (CR-01); it must still be the REAL adapter class.
+  assert.match(src, /new RepoClonerAdapter\(/);
   // The REPORT_READY producer is distinct from the bootstrap sentinel.
   assert.match(src, /reportReadyStdoutProducer/);
   assert.match(src, /REPORT_READY \$\{reportPath\}/);

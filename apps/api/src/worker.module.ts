@@ -59,7 +59,16 @@ import { ScanModule } from './scan/scan.module';
         );
         const readyMarker =
           config.get<string>('SCAN_ENGINE_READY_MARKER') ?? 'none';
-        const adapters = createEngineAdapters({ scanTmpDir, fault });
+        // Validated git transport allowlist (CR-01) — production defaults to
+        // `https` only via the env schema; forwarded to the real clone adapter.
+        const gitAllowedProtocols = config.get<string>(
+          'SCAN_GIT_ALLOWED_PROTOCOLS',
+        );
+        const adapters = createEngineAdapters({
+          scanTmpDir,
+          fault,
+          gitAllowedProtocols,
+        });
 
         const nestLogger = new Logger('ScanEngine');
         const logger: EngineLogger = {

@@ -118,7 +118,44 @@ describe('RepoClonerAdapter', () => {
       'https://example.invalid/org/repo.git',
       cloneDir,
     ]);
-    expect(calls[0]?.options).toEqual({ shell: false });
+    // Shell is disabled and the locked-down git transport env is always set,
+    // defaulting to HTTPS only (CR-01). A future global hardening cannot silently
+    // drop the allowlist without failing this assertion.
+    expect(calls[0]?.options).toEqual({
+      shell: false,
+      env: {
+        GIT_ALLOW_PROTOCOL: 'https',
+        GIT_PROTOCOL_FROM_USER: '0',
+        GIT_TERMINAL_PROMPT: '0',
+      },
+    });
+  });
+
+  it('defaults the git transport allowlist to https only when none is injected', async () => {
+    const { runner, calls } = recordingRunner();
+    const cloner = new RepoClonerAdapter({ runner });
+
+    await cloner.clone('https://example.invalid/repo.git', '/clone/dir');
+
+    expect(calls[0]?.options.env?.GIT_ALLOW_PROTOCOL).toBe('https');
+  });
+
+  it('forwards an injected allowlist verbatim as GIT_ALLOW_PROTOCOL (trusted-test widening)', async () => {
+    const { runner, calls } = recordingRunner();
+    const cloner = new RepoClonerAdapter({
+      runner,
+      allowedProtocols: 'https:file',
+    });
+
+    await cloner.clone('https://example.invalid/repo.git', '/clone/dir');
+
+    // The exact injected value flows through; env is the sole mechanism (it
+    // overrides any `-c protocol.*` config, which is never used).
+    expect(calls[0]?.options.env).toEqual({
+      GIT_ALLOW_PROTOCOL: 'https:file',
+      GIT_PROTOCOL_FROM_USER: '0',
+      GIT_TERMINAL_PROMPT: '0',
+    });
   });
 
   it('never generates its own temp directory or report path', async () => {

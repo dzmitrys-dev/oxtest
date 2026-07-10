@@ -1,6 +1,37 @@
 import * as Joi from 'joi';
 
 /**
+ * Fail-closed git transport allowlist (CR-01). Only these transports may ever be
+ * enabled via `SCAN_GIT_ALLOWED_PROTOCOLS`. `https` is the sole production
+ * transport; `file` exists exclusively for TRUSTED local infrastructure (the
+ * integration harness cloning a committed `.bundle`). Dangerous user-policy
+ * transports — notably `ext` (RCE) and network-SSRF vectors — are absent by
+ * construction, so any attempt to enable them refuses to boot.
+ */
+export const GIT_TRANSPORT_ALLOWLIST: readonly string[] = ['https', 'file'];
+
+/**
+ * Validate a colon-separated `GIT_ALLOW_PROTOCOL` value against the allowlist,
+ * fail-closed: an empty value or any unlisted transport is rejected at boot
+ * rather than silently widening git's attack surface (ASVS V14.1).
+ */
+function validateGitProtocols(
+  value: string,
+  helpers: Joi.CustomHelpers<string>,
+): string | Joi.ErrorReport {
+  const tokens = value.split(':').filter((token) => token.length > 0);
+  if (tokens.length === 0) {
+    return helpers.error('any.invalid');
+  }
+  for (const token of tokens) {
+    if (!GIT_TRANSPORT_ALLOWLIST.includes(token)) {
+      return helpers.error('any.invalid');
+    }
+  }
+  return tokens.join(':');
+}
+
+/**
  * Boot-time env schema (OPS-03). Connectivity-critical keys are `.required()`
  * with NO default (ASVS V14.1 fail-closed — threat T-01-02): a missing
  * REDIS_HOST/REDIS_PORT/SCAN_TMP_DIR must refuse to boot, never silently
@@ -29,4 +60,12 @@ export const envValidationSchema = Joi.object({
   // harness at the TrivyRunner readiness seam. Fail-closed allowlist:
   //   'none' → no marker; 'log' → emit a structured "report ready" log line.
   SCAN_ENGINE_READY_MARKER: Joi.string().valid('none', 'log').default('none'),
+
+  // Git transport allowlist forwarded verbatim as `GIT_ALLOW_PROTOCOL` on the
+  // clone subprocess (CR-01). Fail-closed default = `https` only, so ext::/file
+  // transports (RCE / local-file disclosure) are blocked in production; a
+  // trusted test context may widen to `https:file` for local `.bundle` clones.
+  SCAN_GIT_ALLOWED_PROTOCOLS: Joi.string()
+    .default('https')
+    .custom(validateGitProtocols, 'git transport allowlist'),
 });
