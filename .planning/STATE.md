@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 5
-current_phase_name: Packaging, Ops & Assignment Acceptance
+current_phase: 05
+current_phase_name: packaging-ops-assignment-acceptance
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-07-10T19:57:52.005Z"
+last_updated: "2026-07-10T20:23:40.737Z"
 last_activity: 2026-07-10
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 14
+  completed_plans: 12
   percent: 67
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** Process a 500MB+ Trivy JSON report without OOM under `node --max-old-space-size=150` — memory efficiency is the explicit pass/fail criterion.
-**Current focus:** Phase 04 — required-rest-api-runtime-lifecycle
+**Current focus:** Phase 05 — packaging-ops-assignment-acceptance
 
 ## Current Position
 
-Phase: 5 — Packaging, Ops & Assignment Acceptance
-Plan: Not started
+Phase: 05 (packaging-ops-assignment-acceptance) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-10 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-07-10 — Phase 05 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P01 | 9min | 3 tasks | 11 files |
 | Phase 04 P02 | 8min | 2 tasks | 6 files |
 | Phase 04 P03 | 15min | 3 tasks | 2 files |
+| Phase 05 P01 | 13min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-02: Both WorkerShutdown and ScanRepositoryAdapter close the shared REDIS_CLIENT; both quit() calls are guarded (status!=='end' + catch) to prevent a double-quit crash on worker shutdown
 - [Phase ?]: 04-03: Integration proof runs under node:test against COMPILED dist over disposable Redis — never @nestjs/bullmq in Jest (miette landmine honored); criterion #5 met
 - [Phase ?]: 04-03: Nest 11 enableShutdownHooks re-raises the signal after shutdown hooks (useProcessExit=false) so a clean SIGTERM exits {code:null,signal:SIGTERM}, not code 0; A1/A2 validated empirically
+- [Phase ?]: 05-01: scanId-correlated logging via a pino adapter behind the existing EngineLogger port; per-job pino.child({scanId}) threaded through the worker; ndjson-only in container (pino-pretty dev-only)
+- [Phase ?]: 05-01: BASE_LOGGER DI token in scan/scan.types.ts (not engine/) so ScanService injects the shared base logger without crossing the engine/ import boundary its ARCH-02 spec forbids
+- [Phase ?]: 05-01 (D-13): WR-01 canonical URL pipe, WR-02 SHUTDOWN_GRACE_MS max 9000, WR-03 non-throwing REDIS_CLIENT error listener
 
 ### Pending Todos
 
@@ -119,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T19:01:48.462Z
+Last session: 2026-07-10T20:23:19.132Z
 Stopped at: Phase 5 context gathered
 Resume file: .planning/phases/05-packaging-ops-assignment-acceptance/05-CONTEXT.md
