@@ -21,7 +21,7 @@
     "gen:fixture": "tsx scripts/gen-fixture.ts",
     "memtest": "tsx scripts/memtest.ts",
     "memtest:sweep": "tsx scripts/memtest-sweep.ts",
-    "test:memory-contract": "node --test scripts/memory-process-contract.test.mjs"
+    "test:memory-contract": "node --import tsx --test scripts/memory-process-contract.test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",
@@ -47,6 +47,7 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "30.4.2",
+    "js-yaml": "4.3.0",
     "prettier": "3.9.4",
     "tsx": "4.23.0",
     "typescript": "6.0.3",

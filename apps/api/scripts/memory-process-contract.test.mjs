@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import yaml from 'js-yaml';
 import test from 'node:test';
 
 const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'utf8');
+const { runProcess } = await import('./memtest-sweep.ts');
 
 test('memory sweep uses validated argv arrays and disables shell execution', () => {
   assert.match(source, /spawn\(\s*process\.execPath/);
@@ -15,4 +19,49 @@ test('memory sweep uses validated argv arrays and disables shell execution', () 
   assert.doesNotMatch(source, /exec\(|execFile\([^,]+,\s*['"`]/);
   assert.doesNotMatch(source, /shell:\s*true/);
   assert.match(source, /finally\s*\{/);
+  assert.match(source, /max-old-space-size=\$\{CHILD_HEAP_MB\}/);
+  assert.match(source, /CHILD_TIMEOUT_MS/);
+});
+
+test('memory workflow is valid YAML and keeps the authoritative heap cap', async () => {
+  const workflow = yaml.load(
+    await readFile(new URL('../../../.github/workflows/memory.yml', import.meta.url), 'utf8'),
+  );
+  assert.ok(workflow && typeof workflow === 'object');
+  assert.match(
+    await readFile(new URL('../../../.github/workflows/memory.yml', import.meta.url), 'utf8'),
+    /node --max-old-space-size=150 apps\/api\/dist\/scripts\/memtest\.js/,
+  );
+});
+
+test('child failures and timeouts reject without leaving the caller hanging', async () => {
+  await assert.rejects(
+    runProcess(['-e', 'process.exit(7)'], true, 1_000),
+    /exit code 7/,
+  );
+  await assert.rejects(
+    runProcess(['-e', 'setTimeout(() => {}, 10_000)'], true, 50),
+    /timed out after 50ms/,
+  );
+});
+
+test('fixture generation produces both CRITICAL and HIGH records', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-fixture-'));
+  const fixturePath = join(directory, 'fixture.json');
+  try {
+    const child = await runProcess([
+      '--import', 'tsx',
+      new URL('./gen-fixture.ts', import.meta.url).pathname,
+      '--size-mb', '1',
+      '--output', fixturePath,
+    ], true);
+    assert.match(child, /"vulnerabilities":/);
+    const fixture = JSON.parse(await readFile(fixturePath, 'utf8'));
+    const severities = new Set(fixture.Results[0].Vulnerabilities.map((item) => item.Severity));
+    assert.ok(severities.has('CRITICAL'));
+    assert.ok(severities.has('HIGH'));
+    await stat(fixturePath);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
