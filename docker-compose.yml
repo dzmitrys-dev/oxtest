@@ -1,0 +1,81 @@
+# Code Guardian — reviewer-runnable stack (OPS-01/OPS-02, D-04/D-06/D-07).
+#
+# `docker compose up` brings up exactly three services — redis + api + worker —
+# with NO host-side Trivy or Redis install required. Redis runs as a container;
+# the worker reaches the security scanner as a sibling container through the
+# mounted Docker socket (D-06), invoking the pinned image
+# ghcr.io/aquasecurity/trivy:0.69.3 (matches apps/api/scripts/scan-engine-feasibility.mjs).
+#
+# Memory cap: the worker uses the TOP-LEVEL `mem_limit` key, NOT
+# `deploy.resources.limits.memory` — the latter is SILENTLY IGNORED by
+# `docker compose up` in non-swarm mode (RESEARCH Pitfall 1).
+
+services:
+  # Broker + scan-record store. Internal-only: no host port is published, so the
+  # unauthenticated broker is reachable only by api + worker on the compose
+  # network (T-05-02-04).
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  # REST API (Fastify). Entrypoint is `node dist/index.js` — the assignment's
+  # verbatim self-test command (D-04). Publishes 3000 to the host for the
+  # reviewer; keys its healthcheck off GET /health (200 ok / 503 on Redis down).
+  api:
+    build:
+      context: .
+      target: runtime
+    image: code-guardian-app:latest
+    working_dir: /app/apps/api
+    command: node dist/index.js
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      SCAN_TMP_DIR: /tmp/scans
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+    healthcheck:
+      # Node 22 global fetch; exit 0 only when /health returns 2xx.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Background scan worker — THE memory-critical process. Runs under
+  # `--max-old-space-size=150` (75% of the 200m cap, D-07) and is capped by the
+  # top-level `mem_limit: 200m`. Reaches the scanner sibling container via the
+  # Docker socket mount (D-06). `stop_grace_period: 10s` bounds the SIGTERM->
+  # SIGKILL drain window; SHUTDOWN_GRACE_MS (<=9000) closes the drain first (WR-02).
+  worker:
+    build:
+      context: .
+      target: runtime
+    image: code-guardian-app:latest
+    working_dir: /app/apps/api
+    command: node --max-old-space-size=150 dist/worker.js
+    mem_limit: 200m
+    stop_grace_period: 10s
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      SCAN_TMP_DIR: /tmp/scans
+      TRIVY_MODE: docker
+    volumes:
+      # D-06: sibling-container scanner. Grants the worker Docker control — an
+      # accepted single-tenant take-home trade-off (T-05-02-01), documented for
+      # ONBOARDING (Phase 6). Worker still runs as non-root `node` in its own
+      # container and only invokes the pinned scanner image.
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - redis
+    restart: unless-stopped
