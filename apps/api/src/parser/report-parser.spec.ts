@@ -10,12 +10,16 @@ describe('ReportParser', () => {
     const reportPath = path.join(directory, 'report.json');
     await writeFile(reportPath, JSON.stringify(report));
     try {
-      for await (const vulnerability of new ReportParser().parse(reportPath)) {
-        // Drain the stream so parser errors are observed by the assertion.
-        void vulnerability;
-      }
+      await drainReport(reportPath);
     } finally {
       await rm(directory, { recursive: true, force: true });
+    }
+  }
+
+  async function drainReport(reportPath: string): Promise<void> {
+    for await (const vulnerability of new ReportParser().parse(reportPath)) {
+      // Drain the stream so parser errors are observed by the assertion.
+      void vulnerability;
     }
   }
 
@@ -88,5 +92,14 @@ describe('ReportParser', () => {
         Results: [{ Vulnerabilities: [leaf] }],
       }),
     ).rejects.toThrow('Invalid Trivy vulnerability leaf');
+  });
+
+  it('preserves the filesystem error for a missing report file', async () => {
+    const reportPath = path.join(tmpdir(), `oxtest-missing-${Date.now()}.json`);
+
+    await expect(drainReport(reportPath)).rejects.toMatchObject({
+      code: 'ENOENT',
+      path: reportPath,
+    });
   });
 });

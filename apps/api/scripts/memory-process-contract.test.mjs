@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
@@ -7,6 +7,11 @@ import test from 'node:test';
 
 const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'utf8');
 const { runCase, runProcess } = await import('./memtest-sweep.ts');
+const generatorPath = new URL('./gen-fixture.ts', import.meta.url).pathname;
+
+function runGenerator(args) {
+  return runProcess(['--import', 'tsx', generatorPath, ...args], true);
+}
 
 test('memory sweep uses validated argv arrays and disables shell execution', () => {
   assert.match(source, /spawn\(\s*process\.execPath/);
@@ -68,7 +73,7 @@ test('fixture generation produces both CRITICAL and HIGH records', async () => {
   try {
     const child = await runProcess([
       '--import', 'tsx',
-      new URL('./gen-fixture.ts', import.meta.url).pathname,
+      generatorPath,
       '--size-mb', '1',
       '--output', fixturePath,
     ], true);
@@ -78,6 +83,31 @@ test('fixture generation produces both CRITICAL and HIGH records', async () => {
     assert.ok(severities.has('CRITICAL'));
     assert.ok(severities.has('HIGH'));
     await stat(fixturePath);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('fixture generator rejects invalid inputs without creating output', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-fixture-invalid-'));
+  const cases = [
+    { args: ['--output', join(directory, 'missing-size.json')], output: 'missing-size.json' },
+    { args: ['--size-mb', '0', '--output', join(directory, 'invalid-size.json')], output: 'invalid-size.json' },
+    { args: ['--size-mb', '1'], output: undefined },
+    {
+      args: ['--size-mb', '1', '--output', join(directory, 'missing-parent', 'fixture.json')],
+      output: 'missing-parent/fixture.json',
+    },
+  ];
+
+  try {
+    for (const testCase of cases) {
+      await assert.rejects(runGenerator(testCase.args), /Usage|Output directory/);
+      if (testCase.output !== undefined) {
+        await assert.rejects(stat(join(directory, testCase.output)), { code: 'ENOENT' });
+      }
+    }
+    assert.deepEqual(await readdir(directory), []);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
