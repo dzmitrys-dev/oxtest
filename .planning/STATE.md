@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: scan-engine-adapters-queue-worker-service
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-07-10T10:11:05.228Z"
+stopped_at: Completed 03-02-PLAN.md (engine adapters)
+last_updated: "2026-07-10T13:10:00.478Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 03 (scan-engine-adapters-queue-worker-service) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 03 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 35min | 3 tasks | 15 files |
 | Phase 01 P02 | 13 | 3 tasks | 14 files |
 | Phase 03 P01 | 40min | 3 tasks | 11 files |
+| Phase 03 P02 | 25min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 03-01]: Redis ScanRepository uses WATCH/MULTI/EXEC with conflict retry to guard terminal states and refresh a seven-day TTL on both keys atomically per write; missing hash returns null (D-07..D-12)
 - [Phase ?]: [Phase 03-01]: ScanService injects the BullMQ queue via a framework-neutral SCAN_QUEUE Symbol token (bridged with getQueueToken/useExisting) instead of @InjectQueue, keeping @nestjs/bullmq out of the jest unit path
 - [Phase ?]: [Phase 03-01]: Structured ScanFailureReason {category, detail} added to domain; repository caps detail at 500 chars at persistence (D-20)
+- [Phase ?]: [Phase 03-02]: Engine adapters framework-free plain classes with spawn-based SubprocessRunner seam (shell:false, stdout ignored); Plan 03 wires via useFactory to keep @nestjs/bullmq out of jest graph
+- [Phase ?]: [Phase 03-02]: Used node:child_process.spawn instead of ESM-only execa (D-15 permits execFile/spawn); Trivy Docker fallback pinned aquasecurity/trivy:0.69.3 with /src:ro + /out mounts and tmpfs ephemeral cache
 
 ### Pending Todos
 
@@ -100,6 +103,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T10:09:39.099Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-scan-engine-adapters-queue-worker-service/03-CONTEXT.md
+Last session: 2026-07-10T13:10:00.471Z
+Stopped at: Completed 03-02-PLAN.md (engine adapters)
+Resume file: None
