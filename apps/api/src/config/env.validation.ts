@@ -15,4 +15,18 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().port().required(),
   SCAN_TMP_DIR: Joi.string().required(),
   TRIVY_MODE: Joi.string().valid('binary', 'docker').default('binary'),
+
+  // Deterministic fault-injection point for the Plan 04 engine integration
+  // harness (D-27). Fail-closed allowlist (ASVS V14.1): any value outside the
+  // set refuses to boot rather than silently enabling an unknown fault. The
+  // vocabulary mirrors the engine failure categories the worker classifies
+  // (clone / trivy / disk-full / parse) plus the inert default.
+  SCAN_ENGINE_TEST_FAULT: Joi.string()
+    .valid('none', 'clone', 'trivy', 'disk-full', 'parse')
+    .default('none'),
+
+  // Report-readiness observability marker consumed by the worker/integration
+  // harness at the TrivyRunner readiness seam. Fail-closed allowlist:
+  //   'none' → no marker; 'log' → emit a structured "report ready" log line.
+  SCAN_ENGINE_READY_MARKER: Joi.string().valid('none', 'log').default('none'),
 });

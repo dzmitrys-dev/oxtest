@@ -1,7 +1,4 @@
-import {
-  TrivyRunnerAdapter,
-  TRIVY_DOCKER_IMAGE,
-} from './trivy-runner.adapter';
+import { TrivyRunnerAdapter, TRIVY_DOCKER_IMAGE } from './trivy-runner.adapter';
 import {
   SubprocessRunError,
   type SubprocessRunner,

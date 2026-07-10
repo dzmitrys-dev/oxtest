@@ -13,7 +13,10 @@ interface RecordedCall {
   options: SubprocessRunOptions;
 }
 
-function recordingRunner(): { runner: SubprocessRunner; calls: RecordedCall[] } {
+function recordingRunner(): {
+  runner: SubprocessRunner;
+  calls: RecordedCall[];
+} {
   const calls: RecordedCall[] = [];
   const runner: SubprocessRunner = {
     run(
@@ -88,7 +91,9 @@ describe('ScanPathAllocatorAdapter', () => {
       },
     });
 
-    await expect(allocator.allocate('scan-xyz')).rejects.toThrow('mkdir failed');
+    await expect(allocator.allocate('scan-xyz')).rejects.toThrow(
+      'mkdir failed',
+    );
     // The already-created per-scan base was cleaned up before rejecting.
     expect(removed).toHaveLength(1);
     expect(removed[0]?.includes('uuid-2')).toBe(true);
