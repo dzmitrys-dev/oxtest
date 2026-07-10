@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
 import test from 'node:test';
 
 const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'utf8');
-const { runProcess } = await import('./memtest-sweep.ts');
+const { runCase, runProcess } = await import('./memtest-sweep.ts');
 
 test('memory sweep uses validated argv arrays and disables shell execution', () => {
   assert.match(source, /spawn\(\s*process\.execPath/);
@@ -43,6 +43,23 @@ test('child failures and timeouts reject without leaving the caller hanging', as
     runProcess(['-e', 'setTimeout(() => {}, 10_000)'], true, 50),
     /timed out after 50ms/,
   );
+});
+
+test('sweep removes a generated fixture when a child fails', async () => {
+  const fixturePath = '/tmp/oxtest-phase2-sweep-50mb.json';
+  await rm(fixturePath, { force: true });
+  let invocation = 0;
+  const failingRunner = async (args) => {
+    invocation += 1;
+    if (invocation === 1) {
+      const outputIndex = args.indexOf('--output');
+      await writeFile(args[outputIndex + 1], '{}');
+      return '';
+    }
+    throw new Error('synthetic child failure');
+  };
+  await assert.rejects(runCase(50, false, failingRunner), /synthetic child failure/);
+  await assert.rejects(stat(fixturePath), { code: 'ENOENT' });
 });
 
 test('fixture generation produces both CRITICAL and HIGH records', async () => {

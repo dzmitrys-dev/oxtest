@@ -19,6 +19,7 @@ const SCRIPT_LAUNCH_ARGS = RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR
   ? []
   : [resolve(__dirname, '../../../node_modules/tsx/dist/cli.mjs')];
 const MEMTEST_PATH = resolve(RUNTIME_SCRIPT_DIR, RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR ? 'memtest.js' : 'memtest.ts');
+type ProcessRunner = (args: string[], captureOutput: boolean) => Promise<string>;
 
 function validateSize(size: number): void {
   if (!Number.isInteger(size) || size <= 0 || size > 2048) {
@@ -107,7 +108,11 @@ export async function runProcess(
   return stdout;
 }
 
-export async function runCase(sizeMb: number, dryRun: boolean): Promise<number | undefined> {
+export async function runCase(
+  sizeMb: number,
+  dryRun: boolean,
+  processRunner: ProcessRunner = runProcess,
+): Promise<number | undefined> {
   const fixturePath = `${FIXTURE_PREFIX}${sizeMb}mb.json`;
   if (dryRun) {
     console.log(JSON.stringify({ sizeMb, fixturePath, rssBandMb: RSS_BAND_MB, dryRun: true }));
@@ -115,8 +120,8 @@ export async function runCase(sizeMb: number, dryRun: boolean): Promise<number |
   }
 
   try {
-    await runProcess(generatorArguments(sizeMb, fixturePath), false);
-    const stdout = await runProcess(memtestArguments(fixturePath), true);
+    await processRunner(generatorArguments(sizeMb, fixturePath), false);
+    const stdout = await processRunner(memtestArguments(fixturePath), true);
     console.log(stdout.trim());
     const metrics = JSON.parse(stdout) as { peakRssMb?: unknown };
     if (typeof metrics.peakRssMb !== 'number' || !Number.isFinite(metrics.peakRssMb)) {
