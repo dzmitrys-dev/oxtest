@@ -56,7 +56,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The fixture generator produces a 500MB+ Trivy-shaped JSON on demand while itself staying memory-bounded (streamed to disk)
   5. A GitHub Actions CI job runs the memory self-test and fails the build on OOM
 
-**Plans**: TBD
+**Plans**: 2/2 plans complete
+
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Streaming ReportParser, correctness fixture, and parser safety gate [ENGINE-05, MEM-01, MEM-04]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 02-02-PLAN.md — Memory self-test, flat-RSS sweep, fixture tooling, and Node 22 CI gate [MEM-01, MEM-02, MEM-03, MEM-04]
 
 ### Phase 3: Scan Engine — Adapters, Queue, Worker & Service
 
@@ -126,7 +134,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
-| 2. Streaming Parse Pipeline & Memory Proof | 0/TBD | Not started | - |
+| 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Verifying  |  |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |
 | 5. Packaging, Ops & Test/CI Hardening | 0/TBD | Not started | - |
