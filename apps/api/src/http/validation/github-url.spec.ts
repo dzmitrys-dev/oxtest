@@ -9,18 +9,12 @@ describe('parseGithubUrl', () => {
     const accept: Array<[string, { owner: string; repo: string }]> = [
       ['https://github.com/owner/repo', { owner: 'owner', repo: 'repo' }],
       ['https://github.com/owner/repo.git', { owner: 'owner', repo: 'repo' }],
-      [
-        'https://www.github.com/owner/repo',
-        { owner: 'owner', repo: 'repo' },
-      ],
+      ['https://www.github.com/owner/repo', { owner: 'owner', repo: 'repo' }],
       [
         'https://github.com/octo-cat/my.tool_v2',
         { owner: 'octo-cat', repo: 'my.tool_v2' },
       ],
-      [
-        'https://github.com/owner/repo/',
-        { owner: 'owner', repo: 'repo' },
-      ],
+      ['https://github.com/owner/repo/', { owner: 'owner', repo: 'repo' }],
     ];
 
     it.each(accept)('accepts %s', (input, expected) => {
@@ -49,14 +43,8 @@ describe('parseGithubUrl', () => {
       ['dot-dot repo', 'https://github.com/owner/..'],
       ['dot repo', 'https://github.com/owner/.'],
       ['garbage', 'not a url at all'],
-      [
-        'owner with leading hyphen',
-        'https://github.com/-owner/repo',
-      ],
-      [
-        'owner with double hyphen',
-        'https://github.com/ow--ner/repo',
-      ],
+      ['owner with leading hyphen', 'https://github.com/-owner/repo'],
+      ['owner with double hyphen', 'https://github.com/ow--ner/repo'],
     ];
 
     it.each(reject)('rejects %s', (_label, input) => {
@@ -72,24 +60,23 @@ describe('parseGithubUrl', () => {
 
 describe('GithubUrlPipe', () => {
   const pipe = new GithubUrlPipe();
-  const meta = { type: 'body' as const };
 
   it('returns the CreateScanDto on a valid repoUrl', () => {
     const value: CreateScanDto = { repoUrl: 'https://github.com/owner/repo' };
-    expect(pipe.transform(value, meta)).toEqual(value);
+    expect(pipe.transform(value)).toEqual(value);
   });
 
   it('throws BadRequestException on an invalid repoUrl', () => {
     expect(() =>
-      pipe.transform({ repoUrl: 'git://github.com/owner/repo' }, meta),
+      pipe.transform({ repoUrl: 'git://github.com/owner/repo' }),
     ).toThrow(BadRequestException);
   });
 
   it('throws BadRequestException on an undefined body (400 before handler)', () => {
-    expect(() => pipe.transform(undefined, meta)).toThrow(BadRequestException);
+    expect(() => pipe.transform(undefined)).toThrow(BadRequestException);
   });
 
   it('throws BadRequestException when repoUrl is missing', () => {
-    expect(() => pipe.transform({}, meta)).toThrow(BadRequestException);
+    expect(() => pipe.transform({})).toThrow(BadRequestException);
   });
 });
