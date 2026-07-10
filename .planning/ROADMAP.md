@@ -14,7 +14,7 @@ Code Guardian is built in horizontal layers, bottom-up. We first lay strict-type
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundations, Domain Types & Strict Config** - Strict-typed NestJS skeleton with two entrypoints and boot-time env validation (completed 2026-07-09)
-- [ ] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI
+- [x] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI (completed 2026-07-10)
 - [ ] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup
 - [ ] **Phase 4: REST + GraphQL API Surface** - Submit and poll scans over REST and GraphQL through one shared service, with health and graceful shutdown
 - [ ] **Phase 5: Packaging, Ops & Test/CI Hardening** - Full stack via docker-compose within the 200MB budget, correlated logging, CI-gated tests
@@ -134,7 +134,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
-| 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Verifying  |  |
+| 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 0/TBD | Not started | - |
 | 4. REST + GraphQL API Surface | 0/TBD | Not started | - |
 | 5. Packaging, Ops & Test/CI Hardening | 0/TBD | Not started | - |

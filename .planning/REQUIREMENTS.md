@@ -21,16 +21,16 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 - [ ] **ENGINE-02**: The worker clones the target repository into a unique temp directory (shallow clone) using a subprocess invoked with an argv array (no shell interpolation)
 - [ ] **ENGINE-03**: The worker runs Trivy against the cloned repo, writing the JSON report to a file via Trivy's `--output` flag (never buffering scan stdout in memory)
 - [ ] **ENGINE-04**: The worker auto-detects a local `trivy` binary and falls back to the Docker image when absent
-- [ ] **ENGINE-05**: The worker stream-parses the report with stream-json (`Pick` on `Results` → `streamArray` → per-object filter), storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
+- [x] **ENGINE-05**: The worker stream-parses the report with stream-json (`Pick` on `Results` → `streamArray` → per-object filter), storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
 - [ ] **ENGINE-06**: Scan status transitions (`Queued → Scanning → Finished/Failed`) are persisted in Redis via a `ScanRepository`, independent of BullMQ's internal job state
 - [ ] **ENGINE-07**: The cloned repo and JSON report file are deleted after processing on BOTH success and failure paths (`try/finally`, idempotent)
 
 ### Memory Efficiency (MEM)
 
-- [ ] **MEM-01**: A fixture generator produces a synthetic Trivy-shaped JSON report of 500MB+ on demand (streamed to disk, itself memory-bounded)
-- [ ] **MEM-02**: A self-test script runs the parse pipeline against the 500MB fixture under `node --max-old-space-size=150` and exits 0 without OOM, logging peak RSS and heapUsed
-- [ ] **MEM-03**: The memory self-test runs as a GitHub Actions CI job, failing the build on OOM (turns the pass/fail claim into a reproducible gate)
-- [ ] **MEM-04**: The parse pipeline holds at most one vulnerability object in memory at a time (verified by flat RSS across increasing fixture sizes), and accumulates only CRITICAL results
+- [x] **MEM-01**: A fixture generator produces a synthetic Trivy-shaped JSON report of 500MB+ on demand (streamed to disk, itself memory-bounded)
+- [x] **MEM-02**: A self-test script runs the parse pipeline against the 500MB fixture under `node --max-old-space-size=150` and exits 0 without OOM, logging peak RSS and heapUsed
+- [x] **MEM-03**: The memory self-test runs as a GitHub Actions CI job, failing the build on OOM (turns the pass/fail claim into a reproducible gate)
+- [x] **MEM-04**: The parse pipeline holds at most one vulnerability object in memory at a time (verified by flat RSS across increasing fixture sizes), and accumulates only CRITICAL results
 
 ### Architecture (ARCH)
 
@@ -119,13 +119,13 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ENGINE-02 | Phase 3 | Pending |
 | ENGINE-03 | Phase 3 | Pending |
 | ENGINE-04 | Phase 3 | Pending |
-| ENGINE-05 | Phase 2 | Pending |
+| ENGINE-05 | Phase 2 | Complete |
 | ENGINE-06 | Phase 3 | Pending |
 | ENGINE-07 | Phase 3 | Pending |
-| MEM-01 | Phase 2 | Pending |
-| MEM-02 | Phase 2 | Pending |
-| MEM-03 | Phase 2 | Pending |
-| MEM-04 | Phase 2 | Pending |
+| MEM-01 | Phase 2 | Complete |
+| MEM-02 | Phase 2 | Complete |
+| MEM-03 | Phase 2 | Complete |
+| MEM-04 | Phase 2 | Complete |
 | ARCH-01 | Phase 4 | Pending |
 | ARCH-02 | Phase 3 | Pending |
 | ARCH-03 | Phase 3 | Pending |

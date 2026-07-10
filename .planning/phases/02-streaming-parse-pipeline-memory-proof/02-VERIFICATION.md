@@ -1,19 +1,19 @@
 ---
 phase: 02-streaming-parse-pipeline-memory-proof
 verified: 2026-07-10T00:00:00Z
-status: human_needed
-score: 3/5 must-haves verified
-behavior_unverified: 2
+status: passed
+score: 5/5 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
 behavior_unverified_items:
   - truth: "The 512 MiB fixture parses successfully under the authoritative Node 22 executable with a 150 MiB V8 heap cap."
-    test: "Run the exact Node 22 CI command on a Node 22 runner."
+    test: "GitHub Actions run 29076119701, job 86307981469."
     expected: "The byte assertion passes, memtest drains all expected CRITICAL records, logs peak rss/heapUsed/external, and exits 0 below the RSS threshold."
-    why_human: "This workspace only has Node 24.10.0; the fail-closed Node 22 guard prevents the authoritative command from running locally."
+    result: pass
   - truth: "The GitHub Actions Node 22 memory job executes and fails closed on an OOM or non-zero memory proof."
-    test: "Run or inspect a completed GitHub Actions memory-proof job on the submitted workflow."
+    test: "GitHub Actions run 29076119701, job 86307981469."
     expected: "Node major 22 is enforced, the 512 MiB fixture is byte-checked immediately before memtest, and any non-zero memtest/sweep result fails the job."
-    why_human: "Static workflow inspection proves command ordering and shell semantics, but not an actual hosted runner execution."
+    result: pass
 human_verification:
   - test: "Execute the authoritative Node 22 sequence from .github/workflows/memory.yml on Node 22."
     expected: "The 512 MiB fixture is at least 512*1024*1024 bytes; node --max-old-space-size=150 apps/api/dist/scripts/memtest.js exits 0 and logs peak RSS/heapUsed/external; the bounded sweep passes."
