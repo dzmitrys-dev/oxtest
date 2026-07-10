@@ -21,13 +21,21 @@
     "gen:fixture": "tsx scripts/gen-fixture.ts",
     "memtest": "tsx scripts/memtest.ts",
     "memtest:sweep": "tsx scripts/memtest-sweep.ts",
-    "test:memory-contract": "node --import tsx --test scripts/memory-process-contract.test.mjs"
+    "test:memory-contract": "node --import tsx --test scripts/memory-process-contract.test.mjs",
+    "fixture:sample-repo": "node test-fixtures/create-sample-repo-bundle.mjs",
+    "test:scan-engine:contract": "node --import tsx --test scripts/scan-engine-process-contract.test.mjs",
+    "test:scan-engine:integration": "node --import tsx --test scripts/scan-engine-integration.mjs",
+    "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs"
   },
   "dependencies": {
+    "@nestjs/bullmq": "11.0.4",
     "@nestjs/common": "11.1.28",
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-fastify": "11.1.28",
+    "bullmq": "5.79.3",
+    "execa": "9.6.1",
+    "ioredis": "5.11.1",
     "joi": "18.2.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
