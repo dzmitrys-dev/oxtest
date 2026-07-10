@@ -7,6 +7,9 @@
   "workspaces": [
     "apps/api"
   ],
+  "overrides": {
+    "graphql": "16.14.2"
+  },
   "scripts": {
     "build": "npm run build --workspace apps/api",
     "start:api": "npm run start:api --workspace apps/api",
