@@ -144,3 +144,6 @@ apps/api/fixtures/generated-*.json
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Scan-engine feasibility probe output (generated CI artifact)
+scan-engine-feasibility.json

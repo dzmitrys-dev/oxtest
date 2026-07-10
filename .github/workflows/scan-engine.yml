@@ -1,0 +1,80 @@
+name: Scan engine
+
+on:
+  push:
+  pull_request:
+
+# Two named statuses (see .github/CI-CONTRACT.md):
+#   - scan-engine-contract    : always runs; the ONLY dynamically-required status.
+#   - scan-engine-integration : Docker-backed; runs only when the feasibility
+#                               probe reports feasible=true, otherwise skipped
+#                               with a recorded reason.
+jobs:
+  scan-engine-contract:
+    name: scan-engine-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      feasible: ${{ steps.probe.outputs.feasible }}
+      reason: ${{ steps.probe.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck --workspace apps/api
+      - name: Lint
+        run: npm run lint --workspace apps/api
+      - name: Build
+        run: npm run build --workspace apps/api
+      - name: Focused unit suites
+        run: npm run test --workspace apps/api
+      - name: Process/command-safety contract
+        run: npm run test:scan-engine:contract --workspace apps/api
+      # The probe ALWAYS emits feasible=true|false + reason. A cleanly-determined
+      # infeasibility exits 0 (integration is skipped downstream); an UNEXPECTED
+      # probe error exits non-zero and FAILS THIS JOB CLOSED — an unknown state is
+      # never treated as success.
+      - name: Docker/Redis/Trivy feasibility probe
+        id: probe
+        run: npm run scan-engine:feasibility --workspace apps/api
+      - name: Upload feasibility result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-engine-feasibility
+          path: apps/api/scan-engine-feasibility.json
+          if-no-files-found: warn
+
+  scan-engine-integration:
+    name: scan-engine-integration
+    needs: scan-engine-contract
+    # Runs ONLY on a feasible runner; skipped (not failed) otherwise. Because the
+    # probe fails the contract job closed on an unknown state, reaching here with
+    # feasible=='true' means the prerequisites were positively confirmed.
+    if: needs.scan-engine-contract.outputs.feasible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build --workspace apps/api
+      # Fails closed on any integration failure (default: a non-zero step fails
+      # the job). The bounded per-test timeouts keep the first Docker Trivy run
+      # (image pull + vuln-DB download) finite and status-preserving.
+      - name: Docker-backed scan-engine integration
+        run: npm run test:scan-engine:integration --workspace apps/api
