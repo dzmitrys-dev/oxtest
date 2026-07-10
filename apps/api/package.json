@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "nest build && tsc --ignoreConfig --ignoreDeprecations 6.0 --target ES2023 --module node16 --moduleResolution node16 --esModuleInterop --skipLibCheck --strict --noUncheckedIndexedAccess --outDir dist --rootDir . scripts/gen-fixture.ts scripts/memtest.ts scripts/memtest-sweep.ts",
+    "postbuild": "node scripts/ensure-dist-web.mjs",
     "start:api": "node dist/index.js",
     "start:worker": "node dist/worker.js",
     "dev:api": "tsx watch src/index.ts",
@@ -27,6 +28,7 @@
     "test:scan-engine:integration": "node --import tsx --test scripts/scan-engine-integration.mjs",
     "test:api:integration": "node --import tsx --test scripts/api-integration.mjs",
     "test:selftest": "node --test scripts/selftest-index-boot.mjs",
+    "test:serve-static": "node --test scripts/serve-static-routes.smoke.mjs",
     "test:acceptance": "node --import tsx --test scripts/acceptance.mjs",
     "test:oom:container": "node --import tsx scripts/docker-oom-proof.mjs",
     "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs",
@@ -40,6 +42,7 @@
     "@nestjs/graphql": "13.4.2",
     "@nestjs/mercurius": "13.4.2",
     "@nestjs/platform-fastify": "11.1.28",
+    "@nestjs/serve-static": "5.0.5",
     "bullmq": "5.79.3",
     "execa": "9.6.1",
     "graphql": "16.14.2",
