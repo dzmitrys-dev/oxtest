@@ -9,6 +9,7 @@ import {
 } from './engine/adapter-factory';
 import { ScanEngine, type EngineLogger } from './engine/scan-engine';
 import { SCAN_ENGINE, ScanWorker } from './engine/scan-worker';
+import { WorkerShutdown } from './lifecycle/worker-shutdown.provider';
 import {
   SCAN_REPOSITORY,
   type ScanRepository,
@@ -96,6 +97,10 @@ import { ScanModule } from './scan/scan.module';
       },
     },
     ScanWorker,
+    // Worker-side graceful-shutdown driver (ERR-05, D-11/D-12/D-13): drains the
+    // active scan bounded by SHUTDOWN_GRACE_MS then quits Redis via a Nest
+    // lifecycle hook. @nestjs/bullmq-adjacent — never imported by a Jest spec.
+    WorkerShutdown,
   ],
 })
 export class WorkerModule {}
