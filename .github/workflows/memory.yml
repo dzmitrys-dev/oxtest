@@ -1,0 +1,33 @@
+name: Memory proof
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  node-22-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build and run authoritative 512 MiB proof
+        shell: bash
+        run: |
+           set -euo pipefail
+           test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+           npm run build --workspace apps/api
+           cleanup() {
+             status=$?
+             rm -f /tmp/oxtest-phase2-memory.json || true
+             exit "$status"
+           }
+           trap cleanup EXIT
+           npm run gen:fixture --workspace apps/api -- --size-mb 512 --output /tmp/oxtest-phase2-memory.json
+          test "$(stat -c %s /tmp/oxtest-phase2-memory.json)" -ge "$((512*1024*1024))"
+          node --max-old-space-size=150 apps/api/dist/scripts/memtest.js /tmp/oxtest-phase2-memory.json
