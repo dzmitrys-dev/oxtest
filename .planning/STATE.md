@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: required-rest-api-runtime-lifecycle
-status: executing
+status: verifying
 stopped_at: Phase 4 context gathered
-last_updated: "2026-07-10T18:05:15.131Z"
+last_updated: "2026-07-10T18:26:14.792Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 50
+  completed_plans: 11
+  percent: 67
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 04 (required-rest-api-runtime-lifecycle) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-10 — Phase 04 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P04 | 90min | 3 tasks | 9 files |
 | Phase 04 P01 | 9min | 3 tasks | 11 files |
 | Phase 04 P02 | 8min | 2 tasks | 6 files |
+| Phase 04 P03 | 15min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase ?]: /health uses a bounded active Redis PING over the existing REDIS_CLIENT — no new connection (D-08, 04-01)
 - [Phase ?]: 04-02: raceDrain is a pure Jest-safe fn (no @nestjs/bullmq import) that bounds BullMQ worker.close() and force-closes on SHUTDOWN_GRACE_MS timeout (D-12)
 - [Phase ?]: 04-02: Both WorkerShutdown and ScanRepositoryAdapter close the shared REDIS_CLIENT; both quit() calls are guarded (status!=='end' + catch) to prevent a double-quit crash on worker shutdown
+- [Phase ?]: 04-03: Integration proof runs under node:test against COMPILED dist over disposable Redis — never @nestjs/bullmq in Jest (miette landmine honored); criterion #5 met
+- [Phase ?]: 04-03: Nest 11 enableShutdownHooks re-raises the signal after shutdown hooks (useProcessExit=false) so a clean SIGTERM exits {code:null,signal:SIGTERM}, not code 0; A1/A2 validated empirically
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T18:04:38.017Z
+Last session: 2026-07-10T18:25:54.739Z
 Stopped at: Phase 4 context gathered
 Resume file: .planning/phases/04-required-rest-api-runtime-lifecycle/04-CONTEXT.md

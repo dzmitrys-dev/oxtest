@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundations, Domain Types & Strict Config** - Strict-typed NestJS skeleton with two entrypoints and boot-time env validation (completed 2026-07-09)
 - [x] **Phase 2: Streaming Parse Pipeline & Memory Proof** - The pass/fail core: CRITICAL-only stream parse of a 500MB+ report under a 150MB heap, gated in CI (completed 2026-07-10)
 - [x] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup (completed 2026-07-10)
-- [ ] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional
+- [x] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional (completed 2026-07-10)
 - [ ] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate
 - [ ] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs
 
@@ -111,7 +111,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. On SIGTERM/SIGINT the API and worker shut down gracefully, draining the worker and closing Redis connections
   5. An integration test proves `POST /api/scan → Queued → poll → Finished/Failed` against the worker/service boundary without requiring GraphQL
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 **Wave 1**
 
@@ -120,7 +120,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-03-PLAN.md — Compiled-process integration harness proving the end-to-end REST + runtime-lifecycle contract (success criterion #5) [SCAN-01..05, API-03, ERR-05]
+- [x] 04-03-PLAN.md — Compiled-process integration harness proving the end-to-end REST + runtime-lifecycle contract (success criterion #5) [SCAN-01..05, API-03, ERR-05]
 
 ### Phase 5: Packaging, Ops & Assignment Acceptance
 
@@ -162,6 +162,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundations, Domain Types & Strict Config | 2/2 | Complete    | 2026-07-09 |
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
-| 4. Required REST API & Runtime Lifecycle | 2/3 | In Progress|  |
+| 4. Required REST API & Runtime Lifecycle | 3/3 | Complete   | 2026-07-10 |
 | 5. Packaging, Ops & Assignment Acceptance | 0/TBD | Not started | - |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |
