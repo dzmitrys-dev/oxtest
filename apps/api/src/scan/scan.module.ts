@@ -4,10 +4,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 
 import { ReportParser } from '../parser/report-parser';
+import { createBaseLogger } from '../engine/pino-logger.adapter';
 import { REDIS_CLIENT, ScanRepositoryAdapter } from './scan.repository';
 import { SCAN_REPOSITORY } from './scan.repository.port';
 import { ScanService } from './scan.service';
-import { SCAN_QUEUE, SCAN_QUEUE_NAME } from './scan.types';
+import { BASE_LOGGER, SCAN_QUEUE, SCAN_QUEUE_NAME } from './scan.types';
 
 /**
  * The single shared DI seam imported IDENTICALLY by AppModule and WorkerModule
@@ -49,6 +50,11 @@ import { SCAN_QUEUE, SCAN_QUEUE_NAME } from './scan.types';
     // Bridge BullMQ's own queue token to the framework-neutral SCAN_QUEUE token
     // ScanService injects, so the service stays free of `@nestjs/bullmq`.
     { provide: SCAN_QUEUE, useExisting: getQueueToken(SCAN_QUEUE_NAME) },
+    // Shared base pino logger (OPS-04, D-01/D-02): one ndjson logger both the
+    // API (ScanService enqueue line) and the worker (per-job pino.child) draw
+    // from, so their lines are joinable by scanId. Framework-free factory — no
+    // @nestjs/bullmq, no FastifyAdapter double-pino wiring (D-Fastify).
+    { provide: BASE_LOGGER, useFactory: createBaseLogger },
     ReportParser,
     ScanService,
   ],
@@ -56,6 +62,7 @@ import { SCAN_QUEUE, SCAN_QUEUE_NAME } from './scan.types';
     ScanService,
     SCAN_REPOSITORY,
     SCAN_QUEUE,
+    BASE_LOGGER,
     REDIS_CLIENT,
     ReportParser,
     BullModule,

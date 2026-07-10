@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { Queue } from 'bullmq';
+import type { Logger } from 'pino';
 
 import { Scan, ScanStatus } from '../domain/scan.types';
 import type { ScanRepository } from './scan.repository.port';
@@ -15,13 +16,24 @@ function makeService(): {
   create: jest.Mock<Promise<void>, [Scan]>;
   get: jest.Mock<Promise<Scan | null>, [string]>;
   add: jest.Mock;
+  info: jest.Mock;
 } {
   const create = jest.fn<Promise<void>, [Scan]>().mockResolvedValue(undefined);
   const get = jest.fn<Promise<Scan | null>, [string]>().mockResolvedValue(null);
   const add = jest.fn().mockResolvedValue({ id: '1' });
+  const info = jest.fn();
   const repository = { create, get } as unknown as ScanRepository;
   const queue = { add } as unknown as ScanQueue;
-  return { service: new ScanService(repository, queue), create, get, add };
+  // Fake pino logger: only `info` is exercised by enqueue; `child` returns self
+  // so any child-binding is inert in the unit path.
+  const logger = { info, child: (): Logger => logger } as unknown as Logger;
+  return {
+    service: new ScanService(repository, queue, logger),
+    create,
+    get,
+    add,
+    info,
+  };
 }
 
 describe('ScanService', () => {
@@ -46,6 +58,28 @@ describe('ScanService', () => {
       scanId: scan.id,
       repoUrl,
     });
+  });
+
+  it('emits exactly one structured ndjson enqueue line carrying scanId + repoUrl (OPS-04, D-02)', async () => {
+    const { service, info } = makeService();
+    const repoUrl = 'https://github.com/owner/repo';
+
+    const scan = await service.enqueue(repoUrl);
+
+    expect(info).toHaveBeenCalledTimes(1);
+    // scanId + repoUrl are STRUCTURED fields (object arg), never interpolated
+    // into the message string (V7 log-injection guard).
+    expect(info).toHaveBeenCalledWith(
+      { scanId: scan.id, repoUrl },
+      'scan queued',
+    );
+    const [fields, message] = info.mock.calls[0] as [
+      Record<string, unknown>,
+      string,
+    ];
+    expect(message).not.toContain(scan.id);
+    expect(fields.scanId).toBe(scan.id);
+    expect(fields.repoUrl).toBe(repoUrl);
   });
 
   it('persists the Queued record before enqueuing the job', async () => {

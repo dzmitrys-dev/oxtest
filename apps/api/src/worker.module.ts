@@ -1,5 +1,6 @@
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { Logger as PinoLogger } from 'pino';
 
 import { envValidationSchema } from './config/env.validation';
 import {
@@ -7,7 +8,8 @@ import {
   reportReadyStdoutProducer,
   resolveEngineTestFault,
 } from './engine/adapter-factory';
-import { ScanEngine, type EngineLogger } from './engine/scan-engine';
+import { engineLoggerFor } from './engine/pino-logger.adapter';
+import { ScanEngine } from './engine/scan-engine';
 import { SCAN_ENGINE, ScanWorker } from './engine/scan-worker';
 import { WorkerShutdown } from './lifecycle/worker-shutdown.provider';
 import {
@@ -15,6 +17,7 @@ import {
   type ScanRepository,
 } from './scan/scan.repository.port';
 import { ScanModule } from './scan/scan.module';
+import { BASE_LOGGER } from './scan/scan.types';
 
 /**
  * Worker-side root module. It imports the IDENTICAL global ConfigModule and the
@@ -47,10 +50,11 @@ import { ScanModule } from './scan/scan.module';
       // The plain engine is wired here so the swc+@nestjs/bullmq jest panic is
       // never triggered by the tested lifecycle code (it lives in ScanEngine).
       provide: SCAN_ENGINE,
-      inject: [SCAN_REPOSITORY, ConfigService],
+      inject: [SCAN_REPOSITORY, ConfigService, BASE_LOGGER],
       useFactory: (
         repository: ScanRepository,
         config: ConfigService,
+        baseLogger: PinoLogger,
       ): ScanEngine => {
         const scanTmpDir = config.getOrThrow<string>('SCAN_TMP_DIR');
         // Fail-closed fault resolution: the env schema already validates the
@@ -66,18 +70,14 @@ import { ScanModule } from './scan/scan.module';
           'SCAN_GIT_ALLOWED_PROTOCOLS',
         );
 
-        const nestLogger = new Logger('ScanEngine');
-        const logger: EngineLogger = {
-          info: (message: string): void => {
-            nestLogger.log(message);
-          },
-          warn: (message: string): void => {
-            nestLogger.warn(message);
-          },
-          error: (message: string): void => {
-            nestLogger.error(message);
-          },
-        };
+        // Fallback engine logger drawn from the SHARED base pino logger (D-01).
+        // The worker always injects a per-job `pino.child({ scanId })` into
+        // `engine.run(job, logger)`, so this bound-to-'worker' logger only ever
+        // backs the singleton default and the fault-seam WARN sink (structurally
+        // a FaultSeamLogger). No NestJS `Logger` is constructed for engine
+        // lifecycle anymore, and the base logger is NEVER wired onto the
+        // FastifyAdapter (D-Fastify / Pitfall 4 — no double-pino).
+        const logger = engineLoggerFor(baseLogger, 'worker');
 
         // HIGH-02: the fault seam is resolved at composition time against
         // NODE_ENV. In production a stray SCAN_ENGINE_TEST_FAULT is ignored

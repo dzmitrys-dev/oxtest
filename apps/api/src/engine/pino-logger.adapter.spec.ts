@@ -11,9 +11,9 @@ import {
  * Jest-safe unit test of the pure pino→EngineLogger mapping (D-01, D-04b).
  *
  * This spec imports ONLY `pino` (transitively, via the adapter) and the
- * `EngineLogger` *type* — NEVER `scan-worker.ts` / `@nestjs/bullmq`. That keeps
- * it out of the recorded `@swc/core` miette Jest panic graph (05-RESEARCH
- * Pitfall 5): the adapter is a framework-free translation layer.
+ * `EngineLogger` *type* — never the BullMQ WorkerHost file nor `@nestjs/bullmq`.
+ * That keeps it out of the recorded `@swc/core` miette Jest panic graph
+ * (05-RESEARCH Pitfall 5): the adapter is a framework-free translation layer.
  */
 
 /** In-memory pino destination: captures each ndjson line pino writes. */

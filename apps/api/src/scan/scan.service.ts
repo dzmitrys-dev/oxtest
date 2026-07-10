@@ -2,11 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import type { Logger } from 'pino';
 
 import { Scan, ScanStatus } from '../domain/scan.types';
 import { SCAN_REPOSITORY } from './scan.repository.port';
 import type { ScanRepository } from './scan.repository.port';
-import { ScanJob, SCAN_JOB_NAME, SCAN_QUEUE } from './scan.types';
+import { BASE_LOGGER, ScanJob, SCAN_JOB_NAME, SCAN_QUEUE } from './scan.types';
 
 /**
  * Pure orchestration boundary (ARCH-02, D-02): submit jobs and read full scan
@@ -23,6 +24,7 @@ export class ScanService {
     @Inject(SCAN_REPOSITORY) private readonly repository: ScanRepository,
     @Inject(SCAN_QUEUE)
     private readonly queue: Queue<ScanJob, void, typeof SCAN_JOB_NAME>,
+    @Inject(BASE_LOGGER) private readonly logger: Logger,
   ) {}
 
   /**
@@ -41,6 +43,11 @@ export class ScanService {
     };
     await this.repository.create(scan);
     await this.queue.add(SCAN_JOB_NAME, { scanId: id, repoUrl });
+    // ndjson enqueue line: scanId + repoUrl as STRUCTURED pino fields (never
+    // string-interpolated — V7 log-injection guard, T-05-01-02). A scan's
+    // lifecycle starts here in the API logs and continues in the worker logs,
+    // joinable across processes by scanId (OPS-04, D-02).
+    this.logger.info({ scanId: id, repoUrl }, 'scan queued');
     return scan;
   }
 

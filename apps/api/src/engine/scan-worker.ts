@@ -1,12 +1,15 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import type { Logger as PinoLogger } from 'pino';
 
 import {
+  BASE_LOGGER,
   SCAN_JOB_NAME,
   SCAN_QUEUE_NAME,
   type ScanJob,
 } from '../scan/scan.types';
+import { engineLoggerFor } from './pino-logger.adapter';
 import { ScanEngine } from './scan-engine';
 
 /** DI token for the plain lifecycle engine the shell delegates to. */
@@ -28,12 +31,19 @@ export const SCAN_ENGINE = Symbol('SCAN_ENGINE');
 export class ScanWorker extends WorkerHost {
   private readonly logger = new Logger(ScanWorker.name);
 
-  constructor(@Inject(SCAN_ENGINE) private readonly engine: ScanEngine) {
+  constructor(
+    @Inject(SCAN_ENGINE) private readonly engine: ScanEngine,
+    @Inject(BASE_LOGGER) private readonly baseLogger: PinoLogger,
+  ) {
     super();
   }
 
   async process(job: Job<ScanJob, void, typeof SCAN_JOB_NAME>): Promise<void> {
-    await this.engine.run(job.data);
+    // Build the per-job scanId-bound child logger at the TOP of process (D-02)
+    // so every downstream EngineLogger lifecycle line carries this scan's
+    // scanId as a structured field — joinable with the API enqueue line.
+    const logger = engineLoggerFor(this.baseLogger, job.data.scanId);
+    await this.engine.run(job.data, logger);
   }
 
   /**

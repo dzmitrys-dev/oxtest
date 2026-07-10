@@ -23,3 +23,14 @@ export interface ScanJob {
  * service from the transport library, matching the port/token design of Phase 3.
  */
 export const SCAN_QUEUE = Symbol('SCAN_QUEUE');
+
+/**
+ * DI token for the shared base pino logger (OPS-04, D-01/D-02). Provided by
+ * `ScanModule` via `useFactory: createBaseLogger` and exported so BOTH the API
+ * (`ScanService` enqueue line) and the worker (`ScanWorker` per-job
+ * `pino.child({ scanId })`) draw from the SAME ndjson base logger, keeping their
+ * lines joinable by `scanId`. Declared here — a framework-free tokens home —
+ * rather than in `engine/` so `ScanService` never imports across the `engine/`
+ * boundary its ARCH-02 spec forbids.
+ */
+export const BASE_LOGGER = Symbol('BASE_LOGGER');
