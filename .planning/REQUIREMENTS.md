@@ -17,12 +17,12 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Scan Engine / Worker (ENGINE)
 
-- [ ] **ENGINE-01**: A background worker consumes queued scan jobs via BullMQ (`@Processor`/`WorkerHost`) with `concurrency: 1`, decoupled from the API process
+- [x] **ENGINE-01**: A background worker consumes queued scan jobs via BullMQ (`@Processor`/`WorkerHost`) with `concurrency: 1`, decoupled from the API process
 - [ ] **ENGINE-02**: The worker clones the target repository into a unique temp directory (shallow clone) using a subprocess invoked with an argv array (no shell interpolation)
 - [ ] **ENGINE-03**: The worker runs Trivy against the cloned repo, writing the JSON report to a file via Trivy's `--output` flag (never buffering scan stdout in memory)
 - [ ] **ENGINE-04**: The worker auto-detects a local `trivy` binary and falls back to the Docker image when absent
-- [x] **ENGINE-05**: The worker stream-parses the report with stream-json (`Pick` on `Results` → `streamArray` → per-object filter), storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
-- [ ] **ENGINE-06**: Scan status transitions (`Queued → Scanning → Finished/Failed`) are persisted in Redis via a `ScanRepository`, independent of BullMQ's internal job state
+- [x] **ENGINE-05**: The worker stream-parses the report with stream-json using a memory-flat deep leaf `Pick` plus object-by-object filtering, storing ONLY `Severity === "CRITICAL"` vulnerabilities — never using `fs.readFile` or `JSON.parse` on the report
+- [x] **ENGINE-06**: Scan status transitions (`Queued → Scanning → Finished/Failed`) are persisted in Redis via a `ScanRepository`, independent of BullMQ's internal job state
 - [ ] **ENGINE-07**: The cloned repo and JSON report file are deleted after processing on BOTH success and failure paths (`try/finally`, idempotent)
 
 ### Memory Efficiency (MEM)
@@ -35,8 +35,8 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 ### Architecture (ARCH)
 
 - [ ] **ARCH-01**: REST controllers and GraphQL resolvers are thin transport adapters containing no business logic — both delegate to a single shared `ScanService`
-- [ ] **ARCH-02**: `ScanService` only orchestrates (enqueue jobs, read status) and never touches `fs` or `child_process` directly
-- [ ] **ARCH-03**: Infrastructure concerns are isolated behind injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
+- [x] **ARCH-02**: `ScanService` only orchestrates (enqueue jobs, read status) and never touches `fs` or `child_process` directly
+- [x] **ARCH-03**: Infrastructure concerns are isolated behind injectable adapters (`RepoCloner`, `TrivyRunner`, `ReportParser`, `ScanRepository`)
 - [x] **ARCH-04**: The app has two entrypoints sharing one `ScanModule`: `src/index.ts` (API, HTTP listener → `dist/index.js`) and `src/worker.ts` (worker-only via `createApplicationContext`, no HTTP listener)
 
 ### Error Handling (ERR)
@@ -66,8 +66,8 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Operations & Packaging (OPS)
 
-- [ ] **OPS-01**: `docker-compose.yml` defines `redis`, `api`, and `worker` services; the worker container sets `mem_limit: 200m` and runs `node --max-old-space-size=150 dist/worker.js`
-- [ ] **OPS-02**: The full stack (submit scan → poll → results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install required
+- [ ] **OPS-01** *(Bonus C)*: `docker-compose.yml` defines `redis`, `api`, and `worker` services; the worker container sets `mem_limit: 200m` and runs `node --max-old-space-size=150 dist/worker.js`
+- [ ] **OPS-02** *(Bonus C)*: The full stack (submit scan → poll → results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install required
 - [x] **OPS-03**: `.env` configuration is schema-validated at boot (Joi via `@nestjs/config`); the app refuses to start on invalid/missing config
 - [ ] **OPS-04**: Structured logging correlates log lines to a `scanId` across API and worker
 - [ ] **OPS-05**: An automated test suite covers the ReportParser CRITICAL-filter (unit) and the scan API contract (integration); CI runs lint + type-check + tests
@@ -115,20 +115,20 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | SCAN-03 | Phase 4 | Pending |
 | SCAN-04 | Phase 4 | Pending |
 | SCAN-05 | Phase 4 | Pending |
-| ENGINE-01 | Phase 3 | Pending |
+| ENGINE-01 | Phase 3 | Complete |
 | ENGINE-02 | Phase 3 | Pending |
 | ENGINE-03 | Phase 3 | Pending |
 | ENGINE-04 | Phase 3 | Pending |
 | ENGINE-05 | Phase 2 | Complete |
-| ENGINE-06 | Phase 3 | Pending |
+| ENGINE-06 | Phase 3 | Complete |
 | ENGINE-07 | Phase 3 | Pending |
 | MEM-01 | Phase 2 | Complete |
 | MEM-02 | Phase 2 | Complete |
 | MEM-03 | Phase 2 | Complete |
 | MEM-04 | Phase 2 | Complete |
 | ARCH-01 | Phase 4 | Pending |
-| ARCH-02 | Phase 3 | Pending |
-| ARCH-03 | Phase 3 | Pending |
+| ARCH-02 | Phase 3 | Complete |
+| ARCH-03 | Phase 3 | Complete |
 | ARCH-04 | Phase 1 | Complete |
 | ERR-01 | Phase 3 | Pending |
 | ERR-02 | Phase 3 | Pending |
@@ -137,14 +137,14 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ERR-05 | Phase 4 | Pending |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |
-| API-01 | Phase 4 | Pending |
-| API-02 | Phase 4 | Pending |
+| API-01 | Phase 6 (Bonus B) | Pending |
+| API-02 | Phase 6 (Bonus B) | Pending |
 | API-03 | Phase 4 | Pending |
 | FE-01 | Phase 6 | Pending |
 | FE-02 | Phase 6 | Pending |
 | FE-03 | Phase 6 | Pending |
-| OPS-01 | Phase 5 | Pending |
-| OPS-02 | Phase 5 | Pending |
+| OPS-01 | Phase 6 (Bonus C) | Pending |
+| OPS-02 | Phase 6 (Bonus C) | Pending |
 | OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 5 | Pending |
 | OPS-05 | Phase 5 | Pending |
@@ -157,7 +157,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 - Mapped to phases: 40 (100%)
 - Unmapped: 0
 
-**Per-phase counts:** Phase 1 → 4, Phase 2 → 5, Phase 3 → 12, Phase 4 → 10, Phase 5 → 4, Phase 6 → 5.
+**Per-phase counts:** Phase 1 → 4, Phase 2 → 5, Phase 3 → 12, Phase 4 → 8, Phase 5 → 2, Phase 6 → 9 (including optional GraphQL, Docker, and frontend requirements).
 
 ---
 *Requirements defined: 2026-07-09*
