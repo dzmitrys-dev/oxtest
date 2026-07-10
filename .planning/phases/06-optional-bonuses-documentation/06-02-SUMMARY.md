@@ -175,6 +175,10 @@ None - no external service configuration required. (Local dev uses the Vite `/gr
 - Runtime behavior (live enqueue, 2s poll cadence, per-state visuals) is not exercised by the static build — verify against a running GraphQL API during Plan 03 or UAT.
 - No `error` field on the GraphQL `ScanModel`: if richer Failed-state messaging (per-category + detail) is desired, a future plan must extend the schema; this plan honored D-08 and did not expand the query.
 
+## Self-Check: PASSED
+
+All 10 created files verified present on disk; all 4 commits (d66ef19, 1aa665e, 32eae7b, 1dfc451) present in git history.
+
 ---
 *Phase: 06-optional-bonuses-documentation*
 *Completed: 2026-07-11*

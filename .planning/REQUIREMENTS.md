@@ -60,9 +60,9 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Frontend (FE)
 
-- [ ] **FE-01**: A React app (Vite) accepts a repo URL and a "Start" button that calls the scan endpoint
-- [ ] **FE-02**: The app polls the status endpoint every 2 seconds while the scan is in progress
-- [ ] **FE-03**: The app displays the CRITICAL vulnerabilities when status becomes `Finished`, and an error state on `Failed`
+- [x] **FE-01**: A React app (Vite) accepts a repo URL and a "Start" button that calls the scan endpoint
+- [x] **FE-02**: The app polls the status endpoint every 2 seconds while the scan is in progress
+- [x] **FE-03**: The app displays the CRITICAL vulnerabilities when status becomes `Finished`, and an error state on `Failed`
 
 ### Operations & Packaging (OPS)
 
@@ -140,9 +140,9 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | API-01 | Phase 6 (Bonus B) | Complete |
 | API-02 | Phase 6 (Bonus B) | Complete |
 | API-03 | Phase 4 | Complete |
-| FE-01 | Phase 6 | Pending |
-| FE-02 | Phase 6 | Pending |
-| FE-03 | Phase 6 | Pending |
+| FE-01 | Phase 6 | Complete |
+| FE-02 | Phase 6 | Complete |
+| FE-03 | Phase 6 | Complete |
 | OPS-01 | Phase 5 (pulled forward, Bonus C) | Complete |
 | OPS-02 | Phase 5 (pulled forward, Bonus C) | Complete |
 | OPS-03 | Phase 1 | Complete |
