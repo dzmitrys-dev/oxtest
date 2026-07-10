@@ -7,6 +7,9 @@ const DEFAULT_SIZES_MB = [50, 200, 500] as const;
 const ONE_GB_SIZE_MB = 1024;
 // The largest case may exceed the smallest baseline by this fixed allocator margin.
 const RSS_BAND_MB = 40;
+const CHILD_HEAP_MB = 150;
+const CHILD_TIMEOUT_MS = 5 * 60 * 1000;
+const CHILD_KILL_GRACE_MS = 2_000;
 const FIXTURE_PREFIX = '/tmp/oxtest-phase2-sweep-';
 const COMPILED_SCRIPT_DIR = resolve(__dirname.endsWith('/dist/scripts') ? __dirname : resolve(__dirname, '../dist/scripts'));
 const RUNTIME_SCRIPT_DIR = existsSync(resolve(COMPILED_SCRIPT_DIR, 'memtest.js'))
@@ -32,6 +35,7 @@ function validateChildArguments(args: readonly string[]): void {
 function generatorArguments(sizeMb: number, fixturePath: string): string[] {
   validateSize(sizeMb);
   const args = [
+    `--max-old-space-size=${CHILD_HEAP_MB}`,
     ...SCRIPT_LAUNCH_ARGS,
     resolve(RUNTIME_SCRIPT_DIR, RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR ? 'gen-fixture.js' : 'gen-fixture.ts'),
     '--size-mb',
@@ -44,7 +48,12 @@ function generatorArguments(sizeMb: number, fixturePath: string): string[] {
 }
 
 function memtestArguments(fixturePath: string): string[] {
-  const args = [...SCRIPT_LAUNCH_ARGS, MEMTEST_PATH, fixturePath];
+  const args = [
+    `--max-old-space-size=${CHILD_HEAP_MB}`,
+    ...SCRIPT_LAUNCH_ARGS,
+    MEMTEST_PATH,
+    fixturePath,
+  ];
   validateChildArguments(args);
   return args;
 }
@@ -59,7 +68,11 @@ function parseArguments(argv: string[]): { sizes: readonly number[]; dryRun: boo
   return { sizes, dryRun };
 }
 
-async function runProcess(args: string[], captureOutput: boolean): Promise<string> {
+export async function runProcess(
+  args: string[],
+  captureOutput: boolean,
+  timeoutMs = CHILD_TIMEOUT_MS,
+): Promise<string> {
   validateChildArguments(args);
   const child = spawn(process.execPath, args, {
     shell: false,
@@ -71,12 +84,30 @@ async function runProcess(args: string[], captureOutput: boolean): Promise<strin
     child.stdout?.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
   }
-  const [exitCode] = await once(child, 'close');
-  if (exitCode !== 0) throw new Error(stderr || `Child process failed with exit code ${exitCode}`);
+  let timedOut = false;
+  let closed = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGTERM');
+    setTimeout(() => {
+      if (!closed) child.kill('SIGKILL');
+    }, CHILD_KILL_GRACE_MS).unref();
+  }, timeoutMs);
+  const [exitCode, signal] = await once(child, 'close');
+  closed = true;
+  clearTimeout(timeout);
+  if (timedOut) {
+    throw new Error(`Child process timed out after ${timeoutMs}ms: ${args.join(' ')}`);
+  }
+  if (exitCode !== 0) {
+    throw new Error(
+      stderr || `Child process failed with exit code ${exitCode ?? 'null'}${signal ? ` (${signal})` : ''}`,
+    );
+  }
   return stdout;
 }
 
-async function runCase(sizeMb: number, dryRun: boolean): Promise<number | undefined> {
+export async function runCase(sizeMb: number, dryRun: boolean): Promise<number | undefined> {
   const fixturePath = `${FIXTURE_PREFIX}${sizeMb}mb.json`;
   if (dryRun) {
     console.log(JSON.stringify({ sizeMb, fixturePath, rssBandMb: RSS_BAND_MB, dryRun: true }));
@@ -113,7 +144,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
