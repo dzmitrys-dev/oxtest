@@ -6,14 +6,14 @@ current_phase: 06
 current_phase_name: Optional Bonuses & Documentation
 status: executing
 stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-07-10T23:29:31.258Z"
+last_updated: "2026-07-10T23:45:37.673Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
   percent: 83
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 06 (Optional Bonuses & Documentation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 06 execution started
 
@@ -73,6 +73,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P03 | 10min | 3 tasks | 6 files |
 | Phase 06 P01 | 12 | 3 tasks | 8 files |
 | Phase 06 P06-02 | 8min | 3 tasks | 12 files |
+| Phase 06 P06-03 | 32min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-02: Docker memory cap uses top-level mem_limit:200m (resolves to 209715200 bytes); deploy.resources deliberately absent (silently ignored non-swarm)
 - [Phase ?]: 05-02: api + worker share one code-guardian-app:latest image from the node:22-slim runtime target; differentiated only by per-service command
 - [Phase ?]: 05-03: Docker-free selftest-index-boot.mjs is the authoritative criterion-#5a proof (always-required, no Docker/Redis); acceptance.mjs is the richer Docker-path superset; in-container OOM proof asserts OOMKilled==false AND exit 0
+- [Phase ?]: 06-03: SPA served by API via ServeStaticModule (AppModule-only) at origin root; exclude /api/{*path},/health,/graphql,/graphiql confirmed empirically; boot-safe dist/web keeps criterion #5a green; web build folded into Dockerfile, runtime image web-dep-free.
 
 ### Pending Todos
 
@@ -131,6 +133,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T23:29:31.251Z
+Last session: 2026-07-10T23:45:22.860Z
 Stopped at: Phase 6 UI-SPEC approved
 Resume file: .planning/phases/06-optional-bonuses-documentation/06-UI-SPEC.md
