@@ -111,7 +111,7 @@ RepoCloner.clone(repoUrl, uniqueTempDir)
         ▼
 TrivyRunner.run(cloneDir, reportPath)
   ├─ local `trivy` argv, or
-  └─ `docker run ... aquasecurity/trivy:0.69.3 ...` argv
+  └─ `docker run ... ghcr.io/aquasecurity/trivy:0.69.3 ...` argv
         │  --format json --output reportPath --exit-code 0
         ▼
 ReportParser.parse(reportPath)  [async generator, one CRITICAL at a time]
@@ -293,11 +293,11 @@ local:  trivy filesystem --format json --output REPORT --exit-code 0 --no-progre
 Docker: docker run --rm
         -v CLONE:/src:ro
         -v REPORT_PARENT:/out
-        aquasecurity/trivy:0.69.3
+        ghcr.io/aquasecurity/trivy:0.69.3
         filesystem --format json --output /out/REPORT --exit-code 0 --no-progress /src
 ```
 
-The local filesystem command and flags are directly documented by Trivy. The Docker mount layout and official image tag are resolved project integration choices and must be tested against `aquasecurity/trivy:0.69.3`. [CITED: https://trivy.dev/latest/docs/references/configuration/cli/trivy_filesystem/; RESOLVED CONTRACT]
+The local filesystem command and flags are directly documented by Trivy. The Docker mount layout and official image tag are resolved project integration choices and must be tested against `ghcr.io/aquasecurity/trivy:0.69.3`. [CITED: https://trivy.dev/latest/docs/references/configuration/cli/trivy_filesystem/; RESOLVED CONTRACT]
 
 ### Error normalization
 
@@ -327,7 +327,7 @@ Keep raw stderr out of the public response if it can contain paths or credential
 |---|-------|---------|---------------|
 | A1 | `bullmq@5.79.3` is the selected previously reviewed exact BullMQ 5 patch | Standard Stack | Lockfile/package metadata must retain the exact reviewed patch |
 | A2 | Redis result encoding is a hash plus ordered list with a seven-day TTL refreshed on every write | Code Examples | A repository mutation that omits either key or expiry violates the locked contract |
-| A3 | Docker fallback uses official `aquasecurity/trivy:0.69.3`, mounts a host clone read-only and report parent writable, and writes through `/out/<basename>` | Common Pitfalls / Code Examples | The integration harness must enforce the exact argv and host-file visibility contract |
+| A3 | Docker fallback uses official `ghcr.io/aquasecurity/trivy:0.69.3`, mounts a host clone read-only and report parent writable, and writes through `/out/<basename>` | Common Pitfalls / Code Examples | The integration harness must enforce the exact argv and host-file visibility contract |
 | A4 | A 500-character normalized error cap and public stderr redaction are the Phase 3 failure contract | Code Examples | Unit and process tests must enforce bounded, sanitized persistence |
 | A5 | `@nestjs/bullmq@11.0.4` is compatible with the project's NestJS 11.1.28 packages | Standard Stack | Installation peer constraints could require a compatible patch adjustment |
 
@@ -339,7 +339,7 @@ The following planning questions are resolved by the Phase 3 decisions and execu
 |---|---|---|
 | Which exact BullMQ 5 patch should be locked? | Lock **bullmq@5.79.3**, the previously reviewed exact BullMQ 5 patch, in `apps/api/package.json` and `package-lock.json`; do not substitute the newer same-day 5.80.0 release. | `03-01-PLAN.md` Tasks 1–2 |
 | What Redis retention policy is desired? | Use a seven-day TTL for both the scan metadata hash and ordered CRITICAL vulnerability list. Every create, status transition, and vulnerability append refreshes both keys; missing hashes return `null`. | `03-01-PLAN.md` Task 2; D-07–D-12 |
-| How should Docker fallback map paths and pin the Trivy image? | Prefer local Trivy, fall back only on launch/infrastructure failure, and use the official `aquasecurity/trivy:0.69.3`; mount clone `/src:ro`, writable report parent `/out`, ephemeral per-scan cache, and write `/out/<basename>`. Verify host report existence at the adapter readiness seam before parsing. | `03-02-PLAN.md` Task 1; `03-03-PLAN.md` Task 1 |
+| How should Docker fallback map paths and pin the Trivy image? | Prefer local Trivy, fall back only on launch/infrastructure failure, and use the official `ghcr.io/aquasecurity/trivy:0.69.3`; mount clone `/src:ro`, writable report parent `/out`, ephemeral per-scan cache, and write `/out/<basename>`. Verify host report existence at the adapter readiness seam before parsing. | `03-02-PLAN.md` Task 1; `03-03-PLAN.md` Task 1 |
 | Should a failed BullMQ job be retried? | No automatic attempts, backoff, or retry policy is configured in Phase 3. The worker persists `Failed`, rethrows the original error, and leaves retry policy deferred. | `03-02-PLAN.md` Task 2; `03-03-PLAN.md` Task 3 |
 
 ## Environment Availability

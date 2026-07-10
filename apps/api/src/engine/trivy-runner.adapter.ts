@@ -12,7 +12,7 @@ import {
  * Pinned, reviewed official Trivy image (D-13). NEVER `:latest` — a floating
  * tag would break the supply-chain-scanner's own reproducibility guarantee.
  */
-export const TRIVY_DOCKER_IMAGE = 'aquasecurity/trivy:0.69.3';
+export const TRIVY_DOCKER_IMAGE = 'ghcr.io/aquasecurity/trivy:0.69.3';
 
 /** Container mount points for the Docker fallback (D-16). */
 const CONTAINER_SRC = '/src';

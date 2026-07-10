@@ -109,7 +109,7 @@ describe('TrivyRunnerAdapter', () => {
   });
 
   it('pins the official Trivy image and never uses a floating tag', () => {
-    expect(TRIVY_DOCKER_IMAGE).toBe('aquasecurity/trivy:0.69.3');
+    expect(TRIVY_DOCKER_IMAGE).toBe('ghcr.io/aquasecurity/trivy:0.69.3');
     expect(TRIVY_DOCKER_IMAGE.endsWith(':latest')).toBe(false);
   });
 
