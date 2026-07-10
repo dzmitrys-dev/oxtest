@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, unlinkSync } from 'node:fs';
 import { once } from 'node:events';
 import { resolve } from 'node:path';
@@ -20,6 +21,11 @@ const SCRIPT_LAUNCH_ARGS = RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR
   : [resolve(__dirname, '../../../node_modules/tsx/dist/cli.mjs')];
 const MEMTEST_PATH = resolve(RUNTIME_SCRIPT_DIR, RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR ? 'memtest.js' : 'memtest.ts');
 type ProcessRunner = (args: string[], captureOutput: boolean) => Promise<string>;
+type FixturePathFactory = (sizeMb: number) => string;
+
+function fixturePathForInvocation(sizeMb: number): string {
+  return `${FIXTURE_PREFIX}${randomUUID()}-${sizeMb}mb.json`;
+}
 
 function validateSize(size: number): void {
   if (!Number.isInteger(size) || size <= 0 || size > 2048) {
@@ -112,8 +118,10 @@ export async function runCase(
   sizeMb: number,
   dryRun: boolean,
   processRunner: ProcessRunner = runProcess,
+  fixturePathFactory: FixturePathFactory = fixturePathForInvocation,
 ): Promise<number | undefined> {
-  const fixturePath = `${FIXTURE_PREFIX}${sizeMb}mb.json`;
+  const fixturePath = fixturePathFactory(sizeMb);
+  let fixtureCreated = false;
   if (dryRun) {
     console.log(JSON.stringify({ sizeMb, fixturePath, rssBandMb: RSS_BAND_MB, dryRun: true }));
     return undefined;
@@ -121,6 +129,7 @@ export async function runCase(
 
   try {
     await processRunner(generatorArguments(sizeMb, fixturePath), false);
+    fixtureCreated = true;
     const stdout = await processRunner(memtestArguments(fixturePath), true);
     console.log(stdout.trim());
     const metrics = JSON.parse(stdout) as { peakRssMb?: unknown };
@@ -129,7 +138,7 @@ export async function runCase(
     }
     return metrics.peakRssMb;
   } finally {
-    if (existsSync(fixturePath)) unlinkSync(fixturePath);
+    if (fixtureCreated && existsSync(fixturePath)) unlinkSync(fixturePath);
   }
 }
 

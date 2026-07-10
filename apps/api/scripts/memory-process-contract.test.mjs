@@ -51,20 +51,60 @@ test('child failures and timeouts reject without leaving the caller hanging', as
 });
 
 test('sweep removes a generated fixture when a child fails', async () => {
-  const fixturePath = '/tmp/oxtest-phase2-sweep-50mb.json';
-  await rm(fixturePath, { force: true });
+  let fixturePath = '';
   let invocation = 0;
   const failingRunner = async (args) => {
     invocation += 1;
     if (invocation === 1) {
       const outputIndex = args.indexOf('--output');
-      await writeFile(args[outputIndex + 1], '{}');
+      fixturePath = args[outputIndex + 1];
+      await writeFile(fixturePath, '{}');
       return '';
     }
     throw new Error('synthetic child failure');
   };
   await assert.rejects(runCase(50, false, failingRunner), /synthetic child failure/);
   await assert.rejects(stat(fixturePath), { code: 'ENOENT' });
+});
+
+test('sweep preserves a pre-existing fixture when generation fails', async () => {
+  const fixturePath = '/tmp/oxtest-phase2-sweep-pre-existing.json';
+  const original = '{"preExisting":true}';
+  await writeFile(fixturePath, original);
+
+  try {
+    await assert.rejects(
+      runCase(50, false, async () => { throw new Error('synthetic generation failure'); }, () => fixturePath),
+      /synthetic generation failure/,
+    );
+    assert.equal(await readFile(fixturePath, 'utf8'), original);
+  } finally {
+    await rm(fixturePath, { force: true });
+  }
+});
+
+test('concurrent sweep cases use distinct fixture paths and clean up their own files', async () => {
+  const fixturePaths = [];
+  const concurrentRunner = async (args, captureOutput) => {
+    if (!captureOutput) {
+      const outputIndex = args.indexOf('--output');
+      const fixturePath = args[outputIndex + 1];
+      fixturePaths.push(fixturePath);
+      await writeFile(fixturePath, '{}');
+      return '';
+    }
+    return '{"peakRssMb":100}';
+  };
+
+  await Promise.all([
+    runCase(50, false, concurrentRunner),
+    runCase(50, false, concurrentRunner),
+  ]);
+
+  assert.equal(new Set(fixturePaths).size, 2);
+  for (const fixturePath of fixturePaths) {
+    await assert.rejects(stat(fixturePath), { code: 'ENOENT' });
+  }
 });
 
 test('fixture generation produces both CRITICAL and HIGH records', async () => {
