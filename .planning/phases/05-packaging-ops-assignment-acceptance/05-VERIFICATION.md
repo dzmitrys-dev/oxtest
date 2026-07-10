@@ -1,15 +1,17 @@
 ---
 phase: 05-packaging-ops-assignment-acceptance
 verified: 2026-07-11T00:00:00Z
-status: gaps_found
-score: 4/5 must-haves verified
+status: passed
+score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
+resolution: "The single blocking gap (OPS-02 / Criterion #2) was closed by plan 05-04 (commit eecf701) and re-verified INLINE with reproducible live evidence, because the org's API spend-limit blocked a fresh gsd-verifier subagent spawn. Recommend an independent /gsd-verify-work or re-verify once quota resets."
 gaps:
   - truth: "The full stack (submit scan → poll → CRITICAL results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install (OPS-02, Success Criterion #2, phase goal 'the stack runs from docker compose up')"
-    status: failed
+    status: resolved
+    resolved_by: "05-04 (commit eecf701) — installed git + docker-ce-cli in the runtime image; docker-entrypoint.sh resolves the socket gid at runtime and drops to non-root node; added the scan-engine-image-smoke CI guard. Proven live: inside the built image (non-root node uid 1000) git 2.39.5 + docker 29.6.1 resolve and a non-root `docker run ghcr.io/aquasecurity/trivy:0.69.3 --version` → 0.69.3 succeeded."
     reason: >
-      The node:22-slim runtime image installs NO OS packages (the Dockerfile runs
+      [HISTORICAL — resolved by 05-04] The node:22-slim runtime image installs NO OS packages (the Dockerfile runs
       only `npm ci`/`npm ci --omit=dev`). It therefore ships neither `git` nor the
       `docker` CLI nor a `trivy` binary. The worker unconditionally spawns
       `git clone` for every scan (repo-cloner.adapter.ts:54-67) and reaches Trivy

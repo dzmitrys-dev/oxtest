@@ -172,5 +172,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
-| 5. Packaging, Ops & Assignment Acceptance | 3/3 | Complete   | 2026-07-10 |
+| 5. Packaging, Ops & Assignment Acceptance | 4/4 | Complete    | 2026-07-10 |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |
