@@ -36,7 +36,13 @@ findings:
   medium: 3
   low: 5
   total: 11
-status: issues_found
+  resolved: 3
+  open: 8
+resolved_findings:
+  - CR-01 (git transport allowlist) — 17564ec
+  - HIGH-01 (subprocess timeout) — 0fda32e
+  - HIGH-02 (fault-seam production guard) — 7538d09
+status: partially_resolved
 ---
 
 # Phase 03: Code Review Report (Advisory)
@@ -57,6 +63,8 @@ The dominant residual risk is at the **git transport boundary**: the repo URL re
 ## Critical Issues
 
 ### CR-01: Repo URL reaches `git clone` with no protocol allowlist — `ext::`/`file://` transport = RCE + local-file disclosure
+
+**RESOLVED (17564ec):** The clone adapter now forces a fail-closed git transport allowlist through the environment: `GIT_ALLOW_PROTOCOL` (default `https`, overrides `-c protocol.*`), `GIT_PROTOCOL_FROM_USER=0`, `GIT_TERMINAL_PROMPT=0`. A new validated env key `SCAN_GIT_ALLOWED_PROTOCOLS` (default `https`, allowlist `{https,file}` — `ext` excluded by construction) is injected via the adapter factory. The integration harness widens to `https:file` for the TRUSTED local `.bundle` clone only; production stays `https`. Unit tests assert the default and injected values flow through and that `ext::` is rejected at boot.
 
 **File:** `apps/api/src/engine/repo-cloner.adapter.ts:32-38` (with `apps/api/src/engine/subprocess-runner.ts:83-87`)
 
@@ -87,6 +95,8 @@ Plus a Phase-4 scheme allowlist (`https:` only, reject `file:`/`ext:`/`ssh:`/hos
 
 ### HIGH-01: No subprocess timeout — a hung `git`/`trivy` permanently stalls the concurrency-one worker (DoS) and can hang on credential prompts
 
+**RESOLVED (0fda32e):** The spawn runner now enforces a per-run wall-clock timeout (injectable `timeoutMs`, default 120s) that escalates SIGTERM→SIGKILL after a grace, clearing both timers on exit/error. A timeout rejects with a `timedOut`, `launchFailed:false` `SubprocessRunError` (so it never triggers a Docker fallback) and is classified into a new bounded `timeout` category. Trivy gets a larger 600s budget (first Docker run pulls image + vuln DB); `GIT_TERMINAL_PROMPT=0` (CR-01 fix) prevents credential-prompt hangs. Unit test proves SIGTERM→SIGKILL escalation and the timeout classification with a deterministic fake child.
+
 **File:** `apps/api/src/engine/subprocess-runner.ts:76-132`
 
 **Issue:** `createSpawnSubprocessRunner` sets no `timeout` and never kills the child. Because the worker runs `{ concurrency: 1 }` (`scan-worker.ts:27`), a single subprocess that never exits blocks *every* subsequent scan indefinitely. Triggers include: a huge/slow clone, a Trivy vuln-DB download stall, or a private repo where git blocks waiting on credentials. `stdin` is `'ignore'`, which helps, but askpass/credential-helper paths and `GIT_TERMINAL_PROMPT` (unset) can still hang. The CI job has `timeout-minutes`, but the *runtime* has no equivalent.
@@ -96,6 +106,8 @@ Plus a Phase-4 scheme allowlist (`https:` only, reject `file:`/`ext:`/`ssh:`/hos
 **Fix:** Add a per-run timeout that kills the child (SIGKILL after a grace SIGTERM) and rejects with a `launchFailed:false` `SubprocessRunError` (so it is a genuine stage failure, not a Docker fallback). Set distinct budgets for clone vs. Trivy, and set `GIT_TERMINAL_PROMPT=0`.
 
 ### HIGH-02: `SCAN_ENGINE_TEST_FAULT` is honored in production with no `NODE_ENV` guard — a stray env var silently disables all real scanning
+
+**RESOLVED (7538d09):** The fault seam is now resolved at composition time via `resolveActiveEngineFault`, which engages the fake adapters ONLY when BOTH `NODE_ENV !== 'production'` AND a non-`none` fault is set (fail-closed to real adapters otherwise). In production a set fault is IGNORED with a loud WARN; outside production it activates with a loud WARN. The integration harness's fault cases now run under `NODE_ENV=test` so the seam still activates there, while the Docker success path stays `NODE_ENV=production` on the real adapters. Unit tests prove production+fault → real adapters (ignored), non-production+fault → fault double (active). (`SCAN_ENGINE_READY_MARKER` gating — LOW-05 — remains open.)
 
 **File:** `apps/api/src/config/env.validation.ts:24-26`, `apps/api/src/worker.module.ts:56-62`, `apps/api/src/engine/adapter-factory.ts:89-105`
 
