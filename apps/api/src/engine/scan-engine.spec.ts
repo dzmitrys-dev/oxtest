@@ -25,7 +25,10 @@ import { ScanPathAllocatorAdapter } from './scan-path-allocator.adapter';
 import { TempArtifactCleanerAdapter } from './temp-artifact-cleaner';
 import { TrivyRunnerAdapter } from './trivy-runner.adapter';
 
-const JOB: ScanJob = { scanId: 'scan-123', repoUrl: 'https://example.test/r.git' };
+const JOB: ScanJob = {
+  scanId: 'scan-123',
+  repoUrl: 'https://example.test/r.git',
+};
 const ALLOCATION: ScanPathAllocation = {
   cloneDir: '/tmp/scan/scan-123-x/repo',
   reportPath: '/tmp/scan/scan-123-x/out/report.json',
@@ -42,7 +45,9 @@ function vuln(id: string): Vulnerability {
   };
 }
 
-function enospcError(message = 'ENOSPC: no space left on device'): NodeJS.ErrnoException {
+function enospcError(
+  message = 'ENOSPC: no space left on device',
+): NodeJS.ErrnoException {
   const error = new Error(message) as NodeJS.ErrnoException;
   error.code = 'ENOSPC';
   return error;
@@ -73,7 +78,10 @@ class FakeRepository implements ScanRepository {
     return Promise.resolve();
   }
 
-  appendVulnerability(_id: string, vulnerability: Vulnerability): Promise<void> {
+  appendVulnerability(
+    _id: string,
+    vulnerability: Vulnerability,
+  ): Promise<void> {
     this.events.push(`append:${vulnerability.vulnerabilityId}`);
     this.appended.push(vulnerability);
     return Promise.resolve();
@@ -121,7 +129,11 @@ interface FakeOverrides {
 function makeFakes(overrides: FakeOverrides = {}): Fakes {
   const events: string[] = [];
   const repository = new FakeRepository(events);
-  const yields = overrides.yields ?? [vuln('CVE-1'), vuln('CVE-2'), vuln('CVE-3')];
+  const yields = overrides.yields ?? [
+    vuln('CVE-1'),
+    vuln('CVE-2'),
+    vuln('CVE-3'),
+  ];
 
   const allocator: ScanPathAllocator = {
     allocate:
@@ -158,12 +170,12 @@ function makeFakes(overrides: FakeOverrides = {}): Fakes {
     parse:
       overrides.parse ??
       // eslint-disable-next-line @typescript-eslint/require-await
-      (async function* (): AsyncIterable<Vulnerability> {
+      async function* (): AsyncIterable<Vulnerability> {
         events.push('parse:start');
         for (const item of yields) {
           yield item;
         }
-      }),
+      },
   };
 
   const cleaner: TempArtifactCleaner & { calls: number } = {
@@ -193,7 +205,10 @@ function makeFakes(overrides: FakeOverrides = {}): Fakes {
   return { events, repository, allocator, cloner, trivy, parser, cleaner };
 }
 
-function makeEngine(fakes: Fakes, extra: Partial<ScanEngineDeps> = {}): ScanEngine {
+function makeEngine(
+  fakes: Fakes,
+  extra: Partial<ScanEngineDeps> = {},
+): ScanEngine {
   return new ScanEngine({
     repository: fakes.repository,
     allocator: fakes.allocator,
@@ -219,6 +234,7 @@ describe('ScanEngine — concurrency-one lifecycle', () => {
       'append:CVE-2',
       'append:CVE-3',
       'markFinished',
+      'cleanup',
     ]);
     // Scanning happens before any engine work.
     expect(fakes.events[0]).toBe('markScanning');
@@ -363,7 +379,10 @@ describe('ScanEngine — concurrency-one lifecycle', () => {
 
 describe('adapter-factory — production/test-fault construction', () => {
   it('Test 5a: production (no fault) constructs only the real adapters', () => {
-    const adapters = createEngineAdapters({ scanTmpDir: '/tmp/scan', fault: 'none' });
+    const adapters = createEngineAdapters({
+      scanTmpDir: '/tmp/scan',
+      fault: 'none',
+    });
     expect(adapters.allocator).toBeInstanceOf(ScanPathAllocatorAdapter);
     expect(adapters.cloner).toBeInstanceOf(RepoClonerAdapter);
     expect(adapters.trivy).toBeInstanceOf(TrivyRunnerAdapter);
@@ -415,6 +434,8 @@ describe('adapter-factory — production/test-fault construction', () => {
     expect(resolveEngineTestFault(undefined)).toBe('none');
     expect(resolveEngineTestFault('clone')).toBe('clone');
     expect(resolveEngineTestFault('disk-full')).toBe('disk-full');
-    expect(() => resolveEngineTestFault('bogus')).toThrow(/SCAN_ENGINE_TEST_FAULT/);
+    expect(() => resolveEngineTestFault('bogus')).toThrow(
+      /SCAN_ENGINE_TEST_FAULT/,
+    );
   });
 });
