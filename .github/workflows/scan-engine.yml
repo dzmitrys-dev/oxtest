@@ -4,11 +4,21 @@ on:
   push:
   pull_request:
 
-# Two named statuses (see .github/CI-CONTRACT.md):
-#   - scan-engine-contract    : always runs; the ONLY dynamically-required status.
-#   - scan-engine-integration : Docker-backed; runs only when the feasibility
-#                               probe reports feasible=true, otherwise skipped
-#                               with a recorded reason.
+# Named statuses (see .github/CI-CONTRACT.md):
+#   - scan-engine-contract         : always runs; the ONLY dynamically-required
+#                                    status. ALSO carries the Docker-FREE
+#                                    criterion-#5a self-test (dist/index.js @150).
+#   - scan-engine-integration      : Docker-backed; runs only when the feasibility
+#                                    probe reports feasible=true, else skipped
+#                                    with a recorded reason.
+#   - scan-engine-api-integration  : Docker-backed (compiled REST integration),
+#                                    feasibility-gated, required-when-run.
+#   - scan-engine-acceptance       : Docker-backed (end-to-end acceptance gate),
+#                                    feasibility-gated, required-when-run.
+#   - scan-engine-oom              : Docker-backed (in-container OOM proof),
+#                                    feasibility-gated, required-when-run.
+# The Node-22 500MB memory proof stays a SEPARATE always-required gate in
+# .github/workflows/memory.yml (untouched here).
 jobs:
   scan-engine-contract:
     name: scan-engine-contract
@@ -33,6 +43,13 @@ jobs:
         run: npm run lint --workspace apps/api
       - name: Build
         run: npm run build --workspace apps/api
+      # Docker-FREE, always-required proof of criterion #5a: the verbatim graded
+      # command `node --max-old-space-size=150 dist/index.js` boots to the
+      # listener marker against a CLOSED loopback Redis port (no Docker/Redis).
+      # NOT feasibility-gated — it runs on every runner and fails the always-
+      # required contract job on any regression.
+      - name: 'Self-test: dist/index.js boots @150 (criterion #5a)'
+        run: npm run test:selftest --workspace apps/api
       - name: Focused unit suites
         run: npm run test --workspace apps/api
       - name: Process/command-safety contract
@@ -78,3 +95,82 @@ jobs:
       # (image pull + vuln-DB download) finite and status-preserving.
       - name: Docker-backed scan-engine integration
         run: npm run test:scan-engine:integration --workspace apps/api
+
+  # ---------------------------------------------------------------------------
+  # Feasibility-gated jobs (required-when-run, skipped-with-reason otherwise).
+  # Each mirrors scan-engine-integration: it runs ONLY when the contract job's
+  # feasibility probe reported feasible=='true'. Because the probe fails the
+  # contract job CLOSED on an unknown state, reaching any of these with
+  # feasible=='true' means the Docker/Redis/Trivy prerequisites were positively
+  # confirmed. See .github/CI-CONTRACT.md.
+  # ---------------------------------------------------------------------------
+  scan-engine-api-integration:
+    name: scan-engine-api-integration
+    needs: scan-engine-contract
+    if: needs.scan-engine-contract.outputs.feasible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build --workspace apps/api
+      # REST contract against the compiled dist/index.js + dist/worker.js over a
+      # disposable Redis (previously ungated — wired in per D-11). Fails closed.
+      - name: Compiled REST API integration
+        run: npm run test:api:integration --workspace apps/api
+
+  scan-engine-acceptance:
+    name: scan-engine-acceptance
+    needs: scan-engine-contract
+    if: needs.scan-engine-contract.outputs.feasible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build --workspace apps/api
+      # Assignment-level acceptance: happy POST->Finished+CRITICAL+cleanup,
+      # forced-failure cleanup, cross-process scanId correlation, and the richer
+      # Docker-path criterion-#5 superset + 500MB memtest. Fails closed.
+      - name: End-to-end acceptance gate
+        run: npm run test:acceptance --workspace apps/api
+
+  scan-engine-oom:
+    name: scan-engine-oom
+    needs: scan-engine-contract
+    if: needs.scan-engine-contract.outputs.feasible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build --workspace apps/api
+      # In-container OOM proof: the worker survives the >=500MB fixture under
+      # mem_limit:200m + --max-old-space-size=150 with OOMKilled==false AND
+      # exit 0 (criterion #2, Pitfall-2 false-negative guard). Fails closed.
+      - name: In-container OOM proof
+        run: npm run test:oom:container --workspace apps/api
