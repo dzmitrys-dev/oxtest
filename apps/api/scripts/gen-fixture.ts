@@ -1,5 +1,7 @@
 import { once } from 'node:events';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, existsSync, statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { finished } from 'node:stream/promises';
 
 async function writeChunk(
   stream: NodeJS.WritableStream,
@@ -37,20 +39,52 @@ async function generateFixture(
   }
   await writeChunk(stream, ']}]}');
   stream.end();
-  await once(stream, 'finish');
+  await finished(stream);
+  const bytes = statSync(outputPath).size;
+  console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index }));
 }
 
-const outputPath = process.argv[2] ?? 'fixtures/generated-large-fixture.json';
-const targetMegabytes = Number(process.argv[3] ?? '500');
+function parseArguments(argv: string[]): { outputPath: string; targetMegabytes: number } {
+  const sizeIndex = argv.indexOf('--size-mb');
+  const outputIndex = argv.indexOf('--output');
+  const sizeValue = sizeIndex >= 0 ? argv[sizeIndex + 1] : undefined;
+  const outputValue = outputIndex >= 0 ? argv[outputIndex + 1] : undefined;
+  const targetMegabytes = Number(sizeValue);
 
-if (!Number.isFinite(targetMegabytes) || targetMegabytes <= 0) {
-  console.error(
-    'Usage: npm run gen:fixture -- <output-path> [positive-size-megabytes]',
-  );
-  process.exit(2);
+  if (
+    sizeIndex < 0 ||
+    outputIndex < 0 ||
+    sizeValue === undefined ||
+    outputValue === undefined ||
+    !Number.isFinite(targetMegabytes) ||
+    !Number.isInteger(targetMegabytes) ||
+    targetMegabytes <= 0 ||
+    targetMegabytes > 2048 ||
+    outputValue.trim() === '' ||
+    outputValue.includes('\0')
+  ) {
+    throw new Error(
+      'Usage: gen-fixture --size-mb <positive-size-up-to-2048> --output <file-path>',
+    );
+  }
+
+  const outputPath = resolve(outputValue);
+  if (outputPath === resolve('/') || (existsSync(outputPath) && statSync(outputPath).isDirectory())) {
+    throw new Error(`Output path must be a file: ${outputValue}`);
+  }
+  if (!existsSync(dirname(outputPath))) {
+    throw new Error(`Output directory does not exist: ${dirname(outputPath)}`);
+  }
+
+  return { outputPath, targetMegabytes };
 }
 
-generateFixture(outputPath, targetMegabytes).catch((error: unknown) => {
+async function main(): Promise<void> {
+  const { outputPath, targetMegabytes } = parseArguments(process.argv.slice(2));
+  await generateFixture(outputPath, targetMegabytes);
+}
+
+main().catch((error: unknown) => {
   console.error(error);
   process.exit(1);
 });
