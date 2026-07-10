@@ -158,12 +158,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `README.md` gives copy-paste run instructions, the required memory self-test command, the assignment-level acceptance command, and an architecture overview — and explicitly (a) demonstrates a real functional scan against the forked **OWASP NodeGoat** repository URL (the assignment's setup target), and (b) explains how the PDF's verbatim `node --max-old-space-size=150 dist/index.js` self-test maps onto the two-entrypoint design (the 500MB+ parse runs in the memory-constrained `dist/worker.js`, with a standalone parser self-test as the honest 500MB proof)
   4. `ONBOARDING.md` explains every implemented solution in What / Why / How form — memory strategy, architecture layering, queue design, error handling, and type safety
 
-**Plans**: 0/4 plans complete
+**Plans**: 1/4 plans executed
 **UI hint**: yes
 
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Bonus B: code-first GraphQL (MercuriusDriver) scan query + enqueueScan mutation delegating to ScanService, SSRF-parity, GraphiQL [API-01, API-02]
+- [x] 06-01-PLAN.md — Bonus B: code-first GraphQL (MercuriusDriver) scan query + enqueueScan mutation delegating to ScanService, SSRF-parity, GraphiQL [API-01, API-02]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -189,4 +189,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
 | 5. Packaging, Ops & Assignment Acceptance | 4/4 | Complete    | 2026-07-10 |
-| 6. Optional Bonuses & Documentation | 0/4 | Not started | - |
+| 6. Optional Bonuses & Documentation | 1/4 | In Progress|  |

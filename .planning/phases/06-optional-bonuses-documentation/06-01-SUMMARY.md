@@ -172,3 +172,7 @@ None - no external service configuration required. GraphiQL is enabled by defaul
 ---
 *Phase: 06-optional-bonuses-documentation*
 *Completed: 2026-07-10*
+
+## Self-Check: PASSED
+- All 5 created source files + SUMMARY.md exist on disk.
+- All 4 commits (51aad67, 4370dca, f2d5709, c9d3950) present in git history.

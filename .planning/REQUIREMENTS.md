@@ -54,8 +54,8 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### API Surface (API)
 
-- [ ] **API-01**: A GraphQL endpoint exposes `scan(id)` query returning `type Scan { id: ID!, status: String!, criticalVulnerabilities: [Vulnerability] }` (code-first, MercuriusDriver)
-- [ ] **API-02**: A GraphQL mutation enqueues a scan (parity with `POST /api/scan`), delegating to the same `ScanService`
+- [x] **API-01**: A GraphQL endpoint exposes `scan(id)` query returning `type Scan { id: ID!, status: String!, criticalVulnerabilities: [Vulnerability] }` (code-first, MercuriusDriver)
+- [x] **API-02**: A GraphQL mutation enqueues a scan (parity with `POST /api/scan`), delegating to the same `ScanService`
 - [x] **API-03**: A health endpoint (`GET /health`) reports service + Redis connectivity
 
 ### Frontend (FE)
@@ -137,8 +137,8 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ERR-05 | Phase 4 | Complete |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |
-| API-01 | Phase 6 (Bonus B) | Pending |
-| API-02 | Phase 6 (Bonus B) | Pending |
+| API-01 | Phase 6 (Bonus B) | Complete |
+| API-02 | Phase 6 (Bonus B) | Complete |
 | API-03 | Phase 4 | Complete |
 | FE-01 | Phase 6 | Pending |
 | FE-02 | Phase 6 | Pending |
