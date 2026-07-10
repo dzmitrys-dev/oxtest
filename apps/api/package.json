@@ -26,6 +26,8 @@
     "test:scan-engine:contract": "node --import tsx --test scripts/scan-engine-process-contract.test.mjs",
     "test:scan-engine:integration": "node --import tsx --test scripts/scan-engine-integration.mjs",
     "test:api:integration": "node --import tsx --test scripts/api-integration.mjs",
+    "test:selftest": "node --test scripts/selftest-index-boot.mjs",
+    "test:acceptance": "node --import tsx --test scripts/acceptance.mjs",
     "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs"
   },
   "dependencies": {
