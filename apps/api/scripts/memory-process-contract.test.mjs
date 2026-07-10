@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, readFile, readdir, readlink, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
@@ -108,6 +108,36 @@ test('fixture generator rejects invalid inputs without creating output', async (
       }
     }
     assert.deepEqual(await readdir(directory), []);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('fixture generator preserves existing files and rejects symlink outputs', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-fixture-existing-'));
+  const outputPath = join(directory, 'existing.json');
+  const targetPath = join(directory, 'target.json');
+  const symlinkPath = join(directory, 'fixture-link.json');
+  const original = '{"preserve":true}';
+
+  try {
+    await writeFile(outputPath, original);
+    await writeFile(targetPath, original);
+    await symlink(targetPath, symlinkPath);
+
+    await assert.rejects(
+      runGenerator(['--size-mb', '1', '--output', symlinkPath]),
+      /regular file path/,
+    );
+    assert.equal(await readFile(outputPath, 'utf8'), original);
+    assert.equal(await readFile(targetPath, 'utf8'), original);
+    assert.equal(await readlink(symlinkPath), targetPath);
+    assert.ok((await lstat(symlinkPath)).isSymbolicLink());
+
+    const child = await runGenerator(['--size-mb', '1', '--output', outputPath]);
+    assert.match(child, /"vulnerabilities":/);
+    assert.notEqual(await readFile(outputPath, 'utf8'), original);
+    assert.ok((await stat(outputPath)).isFile());
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

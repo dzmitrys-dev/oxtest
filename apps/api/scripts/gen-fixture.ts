@@ -1,6 +1,7 @@
-import { createWriteStream, existsSync, statSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { createWriteStream, existsSync, lstatSync, statSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { rename, unlink } from 'node:fs/promises';
+import { basename, dirname, resolve } from 'node:path';
 import { finished } from 'node:stream/promises';
 
 async function writeChunk(
@@ -32,12 +33,15 @@ async function generateFixture(
   outputPath: string,
   targetMegabytes: number,
 ): Promise<void> {
-  const stream = createWriteStream(outputPath);
+  const temporaryPath = `${dirname(outputPath)}/.${basename(outputPath)}.tmp-${process.pid}-${randomUUID()}`;
+  let stream: ReturnType<typeof createWriteStream> | undefined;
+  let committed = false;
   const targetBytes = targetMegabytes * 1024 * 1024;
   let writtenBytes = 0;
   let index = 0;
 
   try {
+    stream = createWriteStream(temporaryPath, { flags: 'wx' });
     await writeChunk(
       stream,
       '{"SchemaVersion":2,"Results":[{"Target":"synthetic","Vulnerabilities":[',
@@ -60,11 +64,15 @@ async function generateFixture(
     await writeChunk(stream, ']}]}');
     stream.end();
     await finished(stream);
-    const bytes = statSync(outputPath).size;
+    const bytes = statSync(temporaryPath).size;
+    await rename(temporaryPath, outputPath);
+    committed = true;
     console.log(JSON.stringify({ outputPath, bytes, vulnerabilities: index }));
   } catch (error: unknown) {
-    stream.destroy();
-    await rm(outputPath, { force: true }).catch(() => undefined);
+    stream?.destroy();
+    if (!committed) {
+      await unlink(temporaryPath).catch(() => undefined);
+    }
     throw error;
   }
 }
@@ -94,8 +102,14 @@ function parseArguments(argv: string[]): { outputPath: string; targetMegabytes: 
   }
 
   const outputPath = resolve(outputValue);
-  if (outputPath === resolve('/') || (existsSync(outputPath) && statSync(outputPath).isDirectory())) {
+  if (outputPath === resolve('/')) {
     throw new Error(`Output path must be a file: ${outputValue}`);
+  }
+  if (existsSync(outputPath)) {
+    const outputStats = lstatSync(outputPath);
+    if (outputStats.isDirectory() || outputStats.isSymbolicLink()) {
+      throw new Error(`Output path must be a regular file path: ${outputValue}`);
+    }
   }
   if (!existsSync(dirname(outputPath))) {
     throw new Error(`Output directory does not exist: ${dirname(outputPath)}`);
