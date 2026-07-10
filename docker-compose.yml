@@ -63,7 +63,14 @@ services:
     working_dir: /app/apps/api
     command: node --max-old-space-size=150 dist/worker.js
     mem_limit: 200m
+    # Cap swap at the RAM limit so `mem_limit: 200m` is a TRUE 200m RAM ceiling,
+    # not 200m RAM + 200m swap (WR-02). Keeps the OOM proof honest.
+    memswap_limit: 200m
     stop_grace_period: 10s
+    # Socket-group access is resolved at runtime by docker-entrypoint.sh (it adds
+    # `node` to the mounted socket's actual gid, then drops privileges), so no
+    # host-specific DOCKER_GID or group_add is needed — `docker compose up` works
+    # unchanged on any host while the scan process stays non-root (D-05 + D-06).
     environment:
       NODE_ENV: production
       REDIS_HOST: redis

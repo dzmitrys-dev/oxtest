@@ -29,7 +29,8 @@
     "test:selftest": "node --test scripts/selftest-index-boot.mjs",
     "test:acceptance": "node --import tsx --test scripts/acceptance.mjs",
     "test:oom:container": "node --import tsx scripts/docker-oom-proof.mjs",
-    "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs"
+    "scan-engine:feasibility": "node --import tsx scripts/scan-engine-feasibility.mjs",
+    "test:smoke:image": "node scripts/docker-image-smoke.mjs"
   },
   "dependencies": {
     "@nestjs/bullmq": "11.0.4",

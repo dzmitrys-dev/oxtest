@@ -36,6 +36,25 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Install the two host tools the worker shells out to per scan (gap 05-04, CR-01/CR-02):
+#   - git         : RepoClonerAdapter runs `git clone` (ENOENT without it).
+#   - docker CLI  : TrivyRunnerAdapter (TRIVY_MODE=docker) runs the pinned Trivy
+#                   image as a SIBLING container via the mounted socket (D-06).
+#                   Client ONLY — no daemon/engine — so Trivy's memory stays in a
+#                   separate container, never counting against the worker's 200m cap.
+# This apt layer sits before the npm copy so it caches independently of app deps.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates curl gnupg \
+ && install -m 0755 -d /etc/apt/keyrings \
+ && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+ && chmod a+r /etc/apt/keyrings/docker.asc \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" \
+      > /etc/apt/sources.list.d/docker.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends docker-ce-cli \
+ && apt-get purge -y --auto-remove curl gnupg \
+ && rm -rf /var/lib/apt/lists/*
+
 # Reinstall with production dependencies only, then drop the npm cache so it
 # does not bloat the image layer (V12 — keep the surface small).
 COPY package.json package-lock.json ./
@@ -46,5 +65,11 @@ RUN npm ci --omit=dev && npm cache clean --force
 # planning docs and build tooling never enter the runtime image.
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
-# Run as the unprivileged `node` user baked into the official image (D-05).
-USER node
+# Runtime entrypoint (gap 05-04): the container STARTS as root solely so the
+# entrypoint can grant the `node` user the mounted docker.sock's (host-specific)
+# group, then it drops to non-root `node` via setpriv before exec'ing the app.
+# D-05 is preserved — the app process runs as `node`, never root. No `USER node`
+# here because the entrypoint must adjust groups as root first, then de-escalate.
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

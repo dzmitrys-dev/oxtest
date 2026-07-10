@@ -174,3 +174,27 @@ jobs:
       # exit 0 (criterion #2, Pitfall-2 false-negative guard). Fails closed.
       - name: In-container OOM proof
         run: npm run test:oom:container --workspace apps/api
+
+  scan-engine-image-smoke:
+    name: scan-engine-image-smoke
+    needs: scan-engine-contract
+    if: needs.scan-engine-contract.outputs.feasible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Assert Node 22
+        run: test "$(node -p "process.versions.node.split('.')[0]")" = "22"
+      - name: Install locked dependencies
+        run: npm ci
+      # Built-image capability guard (gap 05-04, CR-01/CR-02): builds the runtime
+      # image and asserts, INSIDE it, that the worker's per-scan tools resolve —
+      # git (clone) + docker CLI (Trivy sibling) — as the non-root node user. This
+      # closes the blind spot where the host-run acceptance harness masked an image
+      # that could not actually scan. Fails closed.
+      - name: In-image scan-tooling smoke test
+        run: npm run test:smoke:image --workspace apps/api
