@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Scan Engine — Adapters, Queue, Worker & Service
 status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-10T07:18:40.619Z"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-07-10T07:52:43.764Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 02 complete, transitioned to Phase 3
 progress:
@@ -68,7 +68,7 @@ Recent decisions affecting current work:
 
 - Framework: NestJS 11 on the Fastify adapter — Module/Controller/Provider IS the graded Controller/Service/Worker separation; one shared `ScanService` across REST + GraphQL + worker
 - Topology: two entrypoints sharing `ScanModule` — `src/index.ts` (API → `dist/index.js`, matches the self-test command) and `src/worker.ts` (worker-only, no HTTP listener); worker `CMD` passes `--max-old-space-size=150` explicitly
-- Memory pass/fail is won in the stream-json `Pick`+`streamArray` strategy, NOT the framework — prove the parser standalone before any queue/HTTP plumbing (Phase 2)
+- Memory pass/fail is won in the stream-json deep leaf `Pick` plus object-by-object strategy, NOT the framework — prove the parser standalone before any queue/HTTP plumbing (Phase 2)
 - [Phase 01]: Pinned TypeScript exactly to 6.0.3 (not latest 7.0.2, not 5.9.x) for typescript-eslint/ts-jest peer compatibility
 - [Phase 01]: Omitted verbatimModuleSyntax to preserve NestJS CommonJS emitDecoratorMetadata DI model; TYPE-01 met by strict + noUncheckedIndexedAccess
 - [Phase 01]: Env schema keys: NODE_ENV/PORT/TRIVY_MODE have safe defaults; REDIS_HOST/REDIS_PORT/SCAN_TMP_DIR are .required() with no default (ASVS V14.1 fail-closed, threat T-01-02)
@@ -95,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T18:43:19.292Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-streaming-parse-pipeline-memory-proof/02-CONTEXT.md
+Last session: 2026-07-10T07:52:43.757Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-scan-engine-adapters-queue-worker-service/03-CONTEXT.md
