@@ -1,0 +1,12 @@
+{
+  "//": "Scopes the fixture generator (.mjs) into a TypeScript project so eslint's typed projectService can lint it. Inert for builds: `tsc --noEmit`/`nest build` use ../tsconfig.json and ../tsconfig.build.json, which only include src/**.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["**/*.mjs"],
+  "exclude": ["node_modules"]
+}
