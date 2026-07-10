@@ -6,14 +6,14 @@ current_phase: 04
 current_phase_name: required-rest-api-runtime-lifecycle
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-07-10T17:51:29.751Z"
+last_updated: "2026-07-10T18:05:15.131Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 04 (required-rest-api-runtime-lifecycle) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 04 execution started
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P03 | 42min | 2 tasks | 7 files |
 | Phase 03 P04 | 90min | 3 tasks | 9 files |
 | Phase 04 P01 | 9min | 3 tasks | 11 files |
+| Phase 04 P02 | 8min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Zero-dep GitHub-URL validator (parseGithubUrl) + GithubUrlPipe; class-validator/class-transformer not installed (04-01)
 - [Phase ?]: REST responses use a state-shaped ScanResponse union via toScanResponse; controllers thin + import-guarded per ARCH-01 (04-01)
 - [Phase ?]: /health uses a bounded active Redis PING over the existing REDIS_CLIENT — no new connection (D-08, 04-01)
+- [Phase ?]: 04-02: raceDrain is a pure Jest-safe fn (no @nestjs/bullmq import) that bounds BullMQ worker.close() and force-closes on SHUTDOWN_GRACE_MS timeout (D-12)
+- [Phase ?]: 04-02: Both WorkerShutdown and ScanRepositoryAdapter close the shared REDIS_CLIENT; both quit() calls are guarded (status!=='end' + catch) to prevent a double-quit crash on worker shutdown
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T17:50:25.973Z
+Last session: 2026-07-10T18:04:38.017Z
 Stopped at: Phase 4 context gathered
 Resume file: .planning/phases/04-required-rest-api-runtime-lifecycle/04-CONTEXT.md

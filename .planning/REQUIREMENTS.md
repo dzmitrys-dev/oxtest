@@ -45,7 +45,7 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 - [x] **ERR-02**: Clone failure (invalid/private/nonexistent repo) marks the job `Failed` with a clear reason and still cleans up
 - [x] **ERR-03**: Disk-full (`ENOSPC`) during clone/scan is caught, marks the job `Failed`, and cleanup runs
 - [x] **ERR-04**: A mid-stream parse error propagates through `stream/promises` `pipeline()` (no swallowed errors), marks `Failed`, and cleans up
-- [ ] **ERR-05**: The service shuts down gracefully on SIGTERM/SIGINT — draining/closing the worker and Redis connections
+- [x] **ERR-05**: The service shuts down gracefully on SIGTERM/SIGINT — draining/closing the worker and Redis connections
 
 ### Type Safety (TYPE)
 
@@ -134,7 +134,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | ERR-02 | Phase 3 | Complete |
 | ERR-03 | Phase 3 | Complete |
 | ERR-04 | Phase 3 | Complete |
-| ERR-05 | Phase 4 | Pending |
+| ERR-05 | Phase 4 | Complete |
 | TYPE-01 | Phase 1 | Complete |
 | TYPE-02 | Phase 1 | Complete |
 | API-01 | Phase 6 (Bonus B) | Pending |
