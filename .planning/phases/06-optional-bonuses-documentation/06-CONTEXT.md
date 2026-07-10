@@ -23,7 +23,7 @@ Deliver the optional bonuses **as upside on an already-submission-ready backend*
 ## Implementation Decisions
 
 ### Bonus scope & sequencing
-- **D-01:** **Build BOTH Bonus A (React/Vite) and Bonus B (GraphQL).** Docs (README + ONBOARDING) ship regardless. Bonus C is already done (Phase 5). The two bonus success criteria (#1 GraphQL, #2 React) are therefore satisfied, not deferred.
+- **D-01 [informational]:** **Build BOTH Bonus A (React/Vite) and Bonus B (GraphQL).** Docs (README + ONBOARDING) ship regardless. Bonus C is already done (Phase 5). The two bonus success criteria (#1 GraphQL, #2 React) are therefore satisfied, not deferred. *(Scope-framing meta-decision — realized collectively by the existence of plans 06-01…06-04 and their requirement coverage, API-01/02 + FE-01/02/03 + DOC-01/02; not a single-plan trackable decision.)*
 - **D-02:** **GraphQL is code-first via MercuriusDriver, registered on the SAME Fastify process/port as REST** (one process, zero second-listener overhead). Both operations delegate to the existing `ScanService`: the query calls `ScanService.get(id)` (`apps/api/src/scan/scan.service.ts:55`) and the mutation calls `ScanService.enqueue(repoUrl)` (`apps/api/src/scan/scan.service.ts:34`). Schema is **locked by API-01**: `type Scan { id: ID!, status: String!, criticalVulnerabilities: [Vulnerability] }`. Do NOT reimplement scan logic in a resolver.
 
 ### React frontend — backend wiring & serving
