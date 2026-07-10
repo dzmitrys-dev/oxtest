@@ -111,6 +111,20 @@ describe('classifyScanError', () => {
     );
   });
 
+  it('classifies a timed-out subprocess as the bounded timeout category', () => {
+    const timedOut = new SubprocessRunError({
+      file: 'git',
+      args: [],
+      launchFailed: false,
+      timedOut: true,
+      signal: 'SIGKILL',
+      stderr: '',
+    });
+    // A timeout is distinct from clone/trivy stage failures and never disk-full.
+    expect(classifyScanError('clone', timedOut).category).toBe('timeout');
+    expect(classifyScanError('trivy', timedOut).category).toBe('timeout');
+  });
+
   it('redacts URL credentials and absolute filesystem paths in the detail', () => {
     const error = new Error(
       'failed cloning https://alice:secrettoken@github.com/org/repo.git into /home/runner/scan-tmp/abc123/repo',

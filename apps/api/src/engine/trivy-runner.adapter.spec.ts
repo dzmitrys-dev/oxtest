@@ -1,4 +1,8 @@
-import { TrivyRunnerAdapter, TRIVY_DOCKER_IMAGE } from './trivy-runner.adapter';
+import {
+  TrivyRunnerAdapter,
+  TRIVY_DOCKER_IMAGE,
+  DEFAULT_TRIVY_TIMEOUT_MS,
+} from './trivy-runner.adapter';
 import {
   SubprocessRunError,
   type SubprocessRunner,
@@ -53,7 +57,10 @@ describe('TrivyRunnerAdapter', () => {
       '0',
       CLONE_DIR,
     ]);
-    expect(calls[0]?.options).toEqual({ shell: false });
+    expect(calls[0]?.options).toEqual({
+      shell: false,
+      timeoutMs: DEFAULT_TRIVY_TIMEOUT_MS,
+    });
     expect(statted).toEqual([REPORT_PATH]);
   });
 
@@ -105,7 +112,10 @@ describe('TrivyRunnerAdapter', () => {
       '0',
       '/src',
     ]);
-    expect(calls[1]?.options).toEqual({ shell: false });
+    expect(calls[1]?.options).toEqual({
+      shell: false,
+      timeoutMs: DEFAULT_TRIVY_TIMEOUT_MS,
+    });
   });
 
   it('pins the official Trivy image and never uses a floating tag', () => {

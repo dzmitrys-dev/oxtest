@@ -48,6 +48,19 @@ function isDiskFull(error: unknown): boolean {
 }
 
 /**
+ * A wall-clock timeout surfaced by the subprocess runner (HIGH-01). Detected by
+ * duck-typing the `timedOut` flag to avoid a runner→domain import cycle.
+ */
+function isTimeout(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'timedOut' in error &&
+    (error as { timedOut?: unknown }).timedOut === true
+  );
+}
+
+/**
  * Redact secrets and uncontrolled filesystem paths from a diagnostic string
  * (D-21, T-03-07). Raw stderr, credentials, and absolute paths must never
  * reach persisted Redis state; detailed diagnostics stay in worker logs only.
@@ -71,7 +84,11 @@ export function classifyScanError(
   stage: ScanErrorStage,
   error: unknown,
 ): ScanFailureReason {
-  const category: ScanFailureCategory = isDiskFull(error) ? 'disk-full' : stage;
+  const category: ScanFailureCategory = isDiskFull(error)
+    ? 'disk-full'
+    : isTimeout(error)
+      ? 'timeout'
+      : stage;
   const detail = redact(errorMessage(error)).slice(0, MAX_DETAIL_LENGTH);
   return { category, detail };
 }

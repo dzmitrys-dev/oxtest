@@ -21,6 +21,14 @@ export interface SubprocessRunOptions {
    * (`GIT_TERMINAL_PROMPT=0`). Absent → the child inherits `process.env` verbatim.
    */
   readonly env?: Readonly<Record<string, string>>;
+  /**
+   * Wall-clock ceiling for the whole run (HIGH-01). On expiry the child is sent
+   * `SIGTERM`, then `SIGKILL` after a short grace, and the run rejects with a
+   * timeout-classified {@link SubprocessRunError}. Absent → a sane default
+   * bounds every run so one hung `git`/`trivy` can never stall the
+   * concurrency-one worker forever.
+   */
+  readonly timeoutMs?: number;
 }
 
 export interface SubprocessRunner {
@@ -45,6 +53,13 @@ export interface SubprocessErrorInfo {
    * non-zero — a genuine execution failure that must NOT trigger a fallback.
    */
   launchFailed: boolean;
+  /**
+   * `true` when the run exceeded its wall-clock budget and the child was killed
+   * (HIGH-01). Distinct from launch-failure and non-zero-exit so the engine can
+   * classify it into a bounded `timeout` category. A timeout is a genuine stage
+   * failure (`launchFailed:false`) — it must NEVER trigger a Docker fallback.
+   */
+  timedOut?: boolean;
   exitCode?: number;
   signal?: string;
   /** Node errno code (e.g. `ENOENT`, `EACCES`, `ENOSPC`) when available. */
@@ -55,18 +70,22 @@ export interface SubprocessErrorInfo {
 
 export class SubprocessRunError extends Error {
   readonly launchFailed: boolean;
+  readonly timedOut: boolean;
   readonly exitCode?: number;
   readonly signal?: string;
   readonly code?: string;
   readonly stderr: string;
 
   constructor(info: SubprocessErrorInfo) {
-    const detail = info.launchFailed
-      ? `launch error${info.code ? ` (${info.code})` : ''}`
-      : `exit ${info.exitCode ?? 'unknown'}${info.signal ? ` (signal ${info.signal})` : ''}`;
+    const detail = info.timedOut
+      ? `timed out${info.signal ? ` (signal ${info.signal})` : ''}`
+      : info.launchFailed
+        ? `launch error${info.code ? ` (${info.code})` : ''}`
+        : `exit ${info.exitCode ?? 'unknown'}${info.signal ? ` (signal ${info.signal})` : ''}`;
     super(`Subprocess '${info.file}' failed: ${detail}`);
     this.name = 'SubprocessRunError';
     this.launchFailed = info.launchFailed;
+    this.timedOut = info.timedOut ?? false;
     this.exitCode = info.exitCode;
     this.signal = info.signal;
     this.code = info.code;
@@ -77,11 +96,32 @@ export class SubprocessRunError extends Error {
 const MAX_STDERR_BYTES = 8192;
 
 /**
+ * Default wall-clock budget for any run without an explicit `timeoutMs`
+ * (HIGH-01). Injectable per-run so callers can set distinct clone vs. Trivy
+ * budgets; the ceiling exists only to guarantee eventual recovery, not to bound
+ * legitimate work tightly.
+ */
+export const DEFAULT_SUBPROCESS_TIMEOUT_MS = 120_000;
+
+/** Grace between the escalating `SIGTERM` and the final `SIGKILL`. */
+export const DEFAULT_SIGKILL_GRACE_MS = 5_000;
+
+/** Injectable seams — production uses the real `spawn` and the default grace. */
+export interface SpawnRunnerDeps {
+  spawn?: typeof spawn;
+  sigkillGraceMs?: number;
+}
+
+/**
  * Default runner backed by `child_process.spawn` with `shell:false`. stdout is
  * ignored (never collected) so a large Trivy report written to `--output`
  * cannot inflate Node heap; stderr is captured but bounded for diagnostics.
  */
-export function createSpawnSubprocessRunner(): SubprocessRunner {
+export function createSpawnSubprocessRunner(
+  deps: SpawnRunnerDeps = {},
+): SubprocessRunner {
+  const spawnFn = deps.spawn ?? spawn;
+  const sigkillGraceMs = deps.sigkillGraceMs ?? DEFAULT_SIGKILL_GRACE_MS;
   return {
     run(
       file: string,
@@ -89,7 +129,7 @@ export function createSpawnSubprocessRunner(): SubprocessRunner {
       options: SubprocessRunOptions,
     ): Promise<void> {
       return new Promise<void>((resolve, reject) => {
-        const child = spawn(file, [...args], {
+        const child = spawnFn(file, [...args], {
           shell: options.shell,
           stdio: ['ignore', 'ignore', 'pipe'],
           // Locked-down env is MERGED over the inherited environment so the child
@@ -108,7 +148,34 @@ export function createSpawnSubprocessRunner(): SubprocessRunner {
           }
         });
 
+        // Wall-clock timeout with a hand-rolled SIGTERM→SIGKILL escalation:
+        // Node's own `spawn` `timeout` sends only ONE signal (no escalation), so
+        // a child that ignores SIGTERM would never die. Both timers are cleared
+        // on close/error so a fast run schedules nothing.
+        const timeoutMs = options.timeoutMs ?? DEFAULT_SUBPROCESS_TIMEOUT_MS;
+        let timedOut = false;
+        let graceTimer: NodeJS.Timeout | undefined;
+        const killTimer = setTimeout(() => {
+          timedOut = true;
+          child.kill('SIGTERM');
+          graceTimer = setTimeout(() => {
+            if (child.exitCode === null && child.signalCode === null) {
+              child.kill('SIGKILL');
+            }
+          }, sigkillGraceMs);
+          graceTimer.unref?.();
+        }, timeoutMs);
+        killTimer.unref?.();
+
+        const clearTimers = (): void => {
+          clearTimeout(killTimer);
+          if (graceTimer) {
+            clearTimeout(graceTimer);
+          }
+        };
+
         child.once('error', (error: NodeJS.ErrnoException) => {
+          clearTimers();
           reject(
             new SubprocessRunError({
               file,
@@ -123,6 +190,20 @@ export function createSpawnSubprocessRunner(): SubprocessRunner {
         child.once(
           'close',
           (exitCode: number | null, signal: string | null) => {
+            clearTimers();
+            if (timedOut) {
+              reject(
+                new SubprocessRunError({
+                  file,
+                  args,
+                  launchFailed: false,
+                  timedOut: true,
+                  signal: signal ?? 'SIGKILL',
+                  stderr,
+                }),
+              );
+              return;
+            }
             if (exitCode === 0) {
               resolve();
               return;

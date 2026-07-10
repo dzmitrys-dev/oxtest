@@ -14,6 +14,14 @@ import {
  */
 export const TRIVY_DOCKER_IMAGE = 'ghcr.io/aquasecurity/trivy:0.69.3';
 
+/**
+ * Wall-clock budget for a Trivy run (HIGH-01). Larger than the clone default
+ * because the FIRST Docker run legitimately pulls the pinned image and
+ * downloads the vulnerability DB before scanning; the ceiling exists only to
+ * guarantee the concurrency-one worker eventually recovers from a hung run.
+ */
+export const DEFAULT_TRIVY_TIMEOUT_MS = 600_000;
+
 /** Container mount points for the Docker fallback (D-16). */
 const CONTAINER_SRC = '/src';
 const CONTAINER_OUT = '/out';
@@ -29,6 +37,8 @@ export interface TrivyRunnerOptions {
   dockerImage?: string;
   runner?: SubprocessRunner;
   stat?: (reportPath: string) => Promise<void>;
+  /** Wall-clock budget per Trivy invocation (defaults to {@link DEFAULT_TRIVY_TIMEOUT_MS}). */
+  timeoutMs?: number;
 }
 
 /**
@@ -47,12 +57,14 @@ export class TrivyRunnerAdapter implements TrivyRunner {
   private readonly dockerImage: string;
   private readonly runner: SubprocessRunner;
   private readonly statReport: (reportPath: string) => Promise<void>;
+  private readonly timeoutMs: number;
 
   constructor(options: TrivyRunnerOptions = {}) {
     this.localCommand = options.localCommand ?? 'trivy';
     this.dockerCommand = options.dockerCommand ?? 'docker';
     this.dockerImage = options.dockerImage ?? TRIVY_DOCKER_IMAGE;
     this.runner = options.runner ?? createSpawnSubprocessRunner();
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TRIVY_TIMEOUT_MS;
     this.statReport =
       options.stat ??
       (async (reportPath: string): Promise<void> => {
@@ -80,7 +92,7 @@ export class TrivyRunnerAdapter implements TrivyRunner {
       await this.runner.run(
         this.localCommand,
         this.buildLocalArgs(cloneDir, reportPath),
-        { shell: false },
+        { shell: false, timeoutMs: this.timeoutMs },
       );
     } catch (error) {
       // Fall back to Docker ONLY for a local launch/infrastructure failure.
@@ -89,7 +101,7 @@ export class TrivyRunnerAdapter implements TrivyRunner {
         await this.runner.run(
           this.dockerCommand,
           this.buildDockerArgs(cloneDir, reportPath),
-          { shell: false },
+          { shell: false, timeoutMs: this.timeoutMs },
         );
         return;
       }
