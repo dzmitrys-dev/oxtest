@@ -124,6 +124,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. If Docker bonus scope is enabled, `docker compose up` starts `redis` + `api` + `worker` with no host-side Trivy/Redis install, and the largest fixture survives under `mem_limit: 200m` with `--max-old-space-size=150` — no OOM-kill (`docker inspect` shows `OOMKilled: false`)
   3. Log lines from both the API and the worker carry the `scanId`, so a single scan's lifecycle can be traced across the two processes
   4. CI runs lint + type-check + parser, adapter, worker, and REST contract tests and fails the build on any failure; the existing Node 22 memory proof remains a required gate
+  5. The assignment's verbatim self-test `node --max-old-space-size=150 dist/index.js` boots the API cleanly without OOM, AND the memory-critical 500MB+ parse is proven under the same 150MB ceiling in `dist/worker.js` (where the two-entrypoint design actually runs the parser) — closing the gap between the PDF's literal command (which names `dist/index.js`) and the process that does the heavy work
 
 **Plans**: TBD
 
@@ -136,7 +137,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
   1. If Bonus B is enabled, GraphQL `scan` and enqueue mutation delegate to the same `ScanService` as REST; otherwise this criterion is explicitly deferred
   2. If Bonus A is enabled, the React (Vite) app accepts a GitHub repo URL, starts a scan, polls every 2 seconds, and displays Finished/Failed states; otherwise this criterion is explicitly deferred
-  3. `README.md` gives copy-paste run instructions, the required memory self-test command, the assignment-level acceptance command, and an architecture overview
+  3. `README.md` gives copy-paste run instructions, the required memory self-test command, the assignment-level acceptance command, and an architecture overview — and explicitly (a) demonstrates a real functional scan against the forked **OWASP NodeGoat** repository URL (the assignment's setup target), and (b) explains how the PDF's verbatim `node --max-old-space-size=150 dist/index.js` self-test maps onto the two-entrypoint design (the 500MB+ parse runs in the memory-constrained `dist/worker.js`, with a standalone parser self-test as the honest 500MB proof)
   4. `ONBOARDING.md` explains every implemented solution in What / Why / How form — memory strategy, architecture layering, queue design, error handling, and type safety
 
 **Plans**: TBD
