@@ -426,19 +426,22 @@ useFactory: (config: ConfigService): Redis => {
 
 **Note:** Node here is v24.10.0 (sandbox) but the project pins Node 22 (`.nvmrc`, `engines`, CI). All memory/behavior claims must be validated on Node 22 in-container, consistent with the standing STATE.md Phase-5 tuning flag.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where does the base pino logger live so it is available to both `scan.service.ts` (API) and `scan-worker.ts` (worker) without pulling `@nestjs/bullmq` into Jest?**
    - What we know: the pino adapter must satisfy `EngineLogger`; the worker file is Jest-forbidden.
    - What's unclear: whether to provide the base logger via a small DI provider in `ScanModule` (shared) or construct it locally in each entrypoint.
    - Recommendation: a tiny framework-free `createBaseLogger()` factory (no `@nestjs/bullmq`), injected in both modules; unit-test the adapter's pure mapping, validate wiring via the compiled harness.
+   - **RESOLVED:** implemented in **05-01 Task 2** as a framework-free `BASE_LOGGER` DI provider (`useFactory: createBaseLogger`) exported from `ScanModule` and injected into BOTH `ScanService` (API enqueue line) and `ScanWorker` (per-job `pino.child({ scanId })`); the pure mapping is unit-tested in `pino-logger.adapter.spec.ts` (Jest-safe) and the wiring is validated via the compiled `node:test` harness.
 
 2. **Does the in-container OOM proof live inside `test:acceptance` or a dedicated compose-driven CI step?**
    - What we know: CONTEXT leaves this to Claude's Discretion, requiring both `OOMKilled==false` AND exit 0.
    - Recommendation: a dedicated compose-driven CI step (feasibility-gated) keeps the acceptance harness fast and Docker-optional; the OOM proof is inherently Docker-bound.
+   - **RESOLVED:** implemented in **05-03 Task 2** as a dedicated compose-driven `scripts/docker-oom-proof.mjs` step (feasibility-gated, separate from `acceptance.mjs`) that asserts BOTH `OOMKilled==false` AND exit code 0.
 
 3. **Should `SHUTDOWN_GRACE_MS` max be lowered to 9000 exactly, or leave headroom for `BACKSTOP_MARGIN_MS` (500)?**
    - Recommendation: max `9000` (backstop fires at 9500, still < 10000 SIGKILL) — matches WR-02's suggested fix.
+   - **RESOLVED:** implemented in **05-01 Task 3** — the Joi `.max()` on `SHUTDOWN_GRACE_MS` is lowered to `9000` so the drain window always closes before Docker's 10s SIGKILL.
 
 ## Environment Availability
 
