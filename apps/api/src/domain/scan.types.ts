@@ -16,11 +16,7 @@ export enum ScanStatus {
  * (engine/scan-error.ts) arrives in a later Phase 3 plan.
  */
 export type ScanFailureCategory =
-  | 'clone'
-  | 'trivy'
-  | 'disk-full'
-  | 'parse'
-  | 'unknown';
+  'clone' | 'trivy' | 'disk-full' | 'parse' | 'unknown';
 
 /**
  * Structured failure reason persisted on a Failed scan (D-20). `detail` is

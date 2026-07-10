@@ -17,7 +17,13 @@ const describeRedis = REDIS_TEST_URL ? describe : describe.skip;
 
 function queued(id: string, repoUrl: string): Scan {
   const now = new Date().toISOString();
-  return { id, status: ScanStatus.Queued, repoUrl, createdAt: now, updatedAt: now };
+  return {
+    id,
+    status: ScanStatus.Queued,
+    repoUrl,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 function vuln(id: string, pkg: string): Vulnerability {
@@ -38,7 +44,9 @@ describeRedis('ScanRepositoryAdapter (real Redis)', () => {
 
   beforeAll(() => {
     // Never set keyPrefix (BullMQ/repository constraint) — use a raw client.
-    client = new Redis(REDIS_TEST_URL as string, { maxRetriesPerRequest: null });
+    client = new Redis(REDIS_TEST_URL as string, {
+      maxRetriesPerRequest: null,
+    });
     repo = new ScanRepositoryAdapter(client);
   });
 
@@ -94,6 +102,9 @@ describeRedis('ScanRepositoryAdapter (real Redis)', () => {
 
     const scan = await repo.get(id);
     expect(scan?.status).toBe(ScanStatus.Failed);
-    expect(scan?.error).toEqual({ category: 'trivy', detail: 'genuine failure' });
+    expect(scan?.error).toEqual({
+      category: 'trivy',
+      detail: 'genuine failure',
+    });
   });
 });

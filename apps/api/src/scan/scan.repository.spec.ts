@@ -243,13 +243,19 @@ describe('ScanRepositoryAdapter (fake Redis)', () => {
     const { repo, fake } = makeRepo();
     await repo.create(queued('scan-3', 'https://example.invalid/repo.git'));
     await repo.markScanning('scan-3');
-    await repo.markFailed('scan-3', { category: 'clone', detail: 'git exited 128' });
+    await repo.markFailed('scan-3', {
+      category: 'clone',
+      detail: 'git exited 128',
+    });
 
     expect(await fake.ttl('scan:scan-3')).toBe(RETENTION_SECONDS);
     expect(await fake.ttl('scan:scan-3:critical')).toBe(RETENTION_SECONDS);
     const scan = await repo.get('scan-3');
     expect(scan?.status).toBe(ScanStatus.Failed);
-    expect(scan?.error).toEqual({ category: 'clone', detail: 'git exited 128' });
+    expect(scan?.error).toEqual({
+      category: 'clone',
+      detail: 'git exited 128',
+    });
   });
 
   it('caps a persisted failure detail at 500 characters', async () => {
@@ -269,7 +275,10 @@ describe('ScanRepositoryAdapter (fake Redis)', () => {
     await repo.create(queued('scan-4', 'https://example.invalid/repo.git'));
     await repo.markScanning('scan-4');
     await repo.markFinished('scan-4');
-    await repo.markFailed('scan-4', { category: 'trivy', detail: 'late failure' });
+    await repo.markFailed('scan-4', {
+      category: 'trivy',
+      detail: 'late failure',
+    });
 
     const scan = await repo.get('scan-4');
     expect(scan?.status).toBe(ScanStatus.Finished);
@@ -280,12 +289,18 @@ describe('ScanRepositoryAdapter (fake Redis)', () => {
     const { repo } = makeRepo();
     await repo.create(queued('scan-5', 'https://example.invalid/repo.git'));
     await repo.markScanning('scan-5');
-    await repo.markFailed('scan-5', { category: 'parse', detail: 'truncated JSON' });
+    await repo.markFailed('scan-5', {
+      category: 'parse',
+      detail: 'truncated JSON',
+    });
     await repo.markFinished('scan-5');
 
     const scan = await repo.get('scan-5');
     expect(scan?.status).toBe(ScanStatus.Failed);
-    expect(scan?.error).toEqual({ category: 'parse', detail: 'truncated JSON' });
+    expect(scan?.error).toEqual({
+      category: 'parse',
+      detail: 'truncated JSON',
+    });
   });
 
   it('rejects appends once a scan is terminal', async () => {
@@ -317,7 +332,10 @@ describe('ScanRepositoryAdapter (fake Redis)', () => {
 
     const scan = await repo.get('scan-7');
     expect(scan?.status).toBe(ScanStatus.Failed);
-    expect(scan?.error).toEqual({ category: 'trivy', detail: 'genuine failure' });
+    expect(scan?.error).toEqual({
+      category: 'trivy',
+      detail: 'genuine failure',
+    });
   });
 
   it('retries a WATCH conflict and still commits a non-terminal transition', async () => {
