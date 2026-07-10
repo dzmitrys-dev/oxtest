@@ -396,7 +396,9 @@ SHUTDOWN_GRACE_MS: Joi.number().integer().min(0).max(60000).default(8000),
 | A4 | The pure custom `ValidationPipe` (zero new deps) is preferable to class-validator DTOs for this project. | Standard Stack / Alternatives | If a reviewer strongly expects idiomatic class-validator DTOs, switch to the audited packages (both OK). Either satisfies D-03. |
 | A5 | Injecting `REDIS_CLIENT` (repository's ioredis) is the intended "existing connection" for `/health` and is safe to PING under load. | Pattern 4 | If the repository client is saturated, PING could be delayed — the 1s race bounds this. BullMQ queue connection is the alternative handle if preferred. |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Both resolved during planning. **Q1** is delegated to Plan 03 Task 3 — the compiled-worker SIGTERM-mid-scan harness test empirically validates Assumptions A1/A2; the fallback (own the drain inside `ScanWorker` itself + an optional `unref()`ed hard-exit backstop) is baked into Plan 02 Task 2, so hook-ordering ambiguity cannot threaten the phase goal. **Q2** is resolved to a param-level custom `@Body(GithubUrlPipe)` (Claude's discretion under D-03).
 
 1. **Does `@nestjs/bullmq` 11.0.4's own worker teardown pre-empt or block the custom bounded drain?**
    - What we know: `worker.close(force)` semantics are confirmed; the package tears down workers/queues on shutdown; NestJS hook order is confirmed (`onModuleDestroy` → `beforeApplicationShutdown` → `onApplicationShutdown`).
