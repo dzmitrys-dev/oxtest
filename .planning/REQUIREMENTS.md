@@ -143,8 +143,8 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | FE-01 | Phase 6 | Pending |
 | FE-02 | Phase 6 | Pending |
 | FE-03 | Phase 6 | Pending |
-| OPS-01 | Phase 6 (Bonus C) | Pending |
-| OPS-02 | Phase 6 (Bonus C) | Pending |
+| OPS-01 | Phase 5 (pulled forward, Bonus C) | Pending |
+| OPS-02 | Phase 5 (pulled forward, Bonus C) | Pending |
 | OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 5 | Pending |
 | OPS-05 | Phase 5 | Pending |
@@ -157,7 +157,7 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 - Mapped to phases: 40 (100%)
 - Unmapped: 0
 
-**Per-phase counts:** Phase 1 → 4, Phase 2 → 5, Phase 3 → 12, Phase 4 → 8, Phase 5 → 2, Phase 6 → 9 (including optional GraphQL, Docker, and frontend requirements).
+**Per-phase counts:** Phase 1 → 4, Phase 2 → 5, Phase 3 → 12, Phase 4 → 8, Phase 5 → 4 (OPS-04, OPS-05 + OPS-01/OPS-02 pulled forward per CONTEXT D-04), Phase 6 → 7 (GraphQL, frontend, and docs requirements).
 
 ---
 *Requirements defined: 2026-07-09*

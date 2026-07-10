@@ -126,7 +126,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Goal**: The required backend is demonstrably submission-ready: the stack runs from `docker compose up` within the 200MB container budget, logs are correlated by `scanId`, and CI gates the assignment-level flow. Docker is also tracked as an optional bonus where runner constraints prevent full execution.
 **Depends on**: Phase 4
-**Requirements**: OPS-04, OPS-05
+**Requirements**: OPS-04, OPS-05, OPS-01, OPS-02 *(OPS-01/OPS-02 pulled forward from Phase 6 Bonus C per CONTEXT D-04)*
 **Success Criteria** (what must be TRUE):
 
   1. The assignment-level acceptance command proves `POST /api/scan → Queued → worker scan → poll → CRITICAL results`, and verifies clone/report cleanup after success and forced failure
@@ -135,13 +135,22 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. CI runs lint + type-check + parser, adapter, worker, and REST contract tests and fails the build on any failure; the existing Node 22 memory proof remains a required gate
   5. The assignment's verbatim self-test `node --max-old-space-size=150 dist/index.js` boots the API cleanly without OOM, AND the memory-critical 500MB+ parse is proven under the same 150MB ceiling in `dist/worker.js` (where the two-entrypoint design actually runs the parser) — closing the gap between the PDF's literal command (which names `dist/index.js`) and the process that does the heavy work
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1** *(parallel — no shared files)*
+
+- [ ] 05-01-PLAN.md — scanId-correlated pino logging behind the EngineLogger port + the three D-13 hardening fixes [OPS-04]
+- [ ] 05-02-PLAN.md — multi-stage node:22-slim Dockerfile, .dockerignore, and docker-compose.yml (redis + api + worker, mem_limit:200m) [OPS-01, OPS-02]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-03-PLAN.md — acceptance harness (POST→CRITICAL + cleanup + correlation + criterion #5), in-container OOM proof, and CI wiring [OPS-05, OPS-02]
 
 ### Phase 6: Optional Bonuses & Documentation
 
 **Goal**: Optional bonuses are delivered only after the required backend is submission-ready, and a reviewer can run and understand every implemented design decision from the documentation.
 **Depends on**: Phase 5
-**Requirements**: API-01, API-02, FE-01, FE-02, FE-03, OPS-01, OPS-02, DOC-01, DOC-02
+**Requirements**: API-01, API-02, FE-01, FE-02, FE-03, DOC-01, DOC-02 *(OPS-01/OPS-02 moved to Phase 5 per CONTEXT D-04)*
 **Success Criteria** (what must be TRUE):
 
   1. If Bonus B is enabled, GraphQL `scan` and enqueue mutation delegate to the same `ScanService` as REST; otherwise this criterion is explicitly deferred
@@ -163,5 +172,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
-| 5. Packaging, Ops & Assignment Acceptance | 0/TBD | Not started | - |
+| 5. Packaging, Ops & Assignment Acceptance | 0/3 | Not started | - |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |
