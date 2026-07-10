@@ -5,7 +5,8 @@
   "private": true,
   "license": "UNLICENSED",
   "workspaces": [
-    "apps/api"
+    "apps/api",
+    "apps/web"
   ],
   "overrides": {
     "graphql": "16.14.2"
