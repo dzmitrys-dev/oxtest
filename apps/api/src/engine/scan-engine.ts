@@ -22,13 +22,22 @@ export interface ReportParserLike {
   parse(reportPath: string): AsyncIterable<Vulnerability>;
 }
 
-/** Bounded diagnostics sink — detail stays in worker logs only (D-21). */
+/**
+ * Bounded diagnostics sink — detail stays in worker logs only (D-21). Widened
+ * in Phase 5 (D-03) to add `info` alongside `warn`/`error` so each lifecycle
+ * transition (Queued → Scanning → Finished, clone/Trivy/parse) emits a
+ * `scanId`-bound line via the pino adapter, satisfying OPS-04 criterion #3.
+ */
 export interface EngineLogger {
+  info(message: string): void;
   warn(message: string): void;
   error(message: string): void;
 }
 
 const noopLogger: EngineLogger = {
+  info(): void {
+    /* discarded by default; the worker injects a real logger */
+  },
   warn(): void {
     /* discarded by default; the worker injects a real logger */
   },
