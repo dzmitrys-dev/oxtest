@@ -135,12 +135,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. CI runs lint + type-check + parser, adapter, worker, and REST contract tests and fails the build on any failure; the existing Node 22 memory proof remains a required gate
   5. The assignment's verbatim self-test `node --max-old-space-size=150 dist/index.js` boots the API cleanly without OOM, AND the memory-critical 500MB+ parse is proven under the same 150MB ceiling in `dist/worker.js` (where the two-entrypoint design actually runs the parser) — closing the gap between the PDF's literal command (which names `dist/index.js`) and the process that does the heavy work
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 **Wave 1** *(parallel — no shared files)*
 
 - [x] 05-01-PLAN.md — scanId-correlated pino logging behind the EngineLogger port + the three D-13 hardening fixes [OPS-04]
-- [ ] 05-02-PLAN.md — multi-stage node:22-slim Dockerfile, .dockerignore, and docker-compose.yml (redis + api + worker, mem_limit:200m) [OPS-01, OPS-02]
+- [x] 05-02-PLAN.md — multi-stage node:22-slim Dockerfile, .dockerignore, and docker-compose.yml (redis + api + worker, mem_limit:200m) [OPS-01, OPS-02]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -172,5 +172,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Streaming Parse Pipeline & Memory Proof | 2/2 | Complete    | 2026-07-10 |
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
-| 5. Packaging, Ops & Assignment Acceptance | 1/3 | In Progress|  |
+| 5. Packaging, Ops & Assignment Acceptance | 2/3 | In Progress|  |
 | 6. Optional Bonuses & Documentation | 0/TBD | Not started | - |

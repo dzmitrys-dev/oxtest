@@ -66,8 +66,8 @@ Requirements for the submission. Each maps to exactly one roadmap phase.
 
 ### Operations & Packaging (OPS)
 
-- [ ] **OPS-01** *(Bonus C)*: `docker-compose.yml` defines `redis`, `api`, and `worker` services; the worker container sets `mem_limit: 200m` and runs `node --max-old-space-size=150 dist/worker.js`
-- [ ] **OPS-02** *(Bonus C)*: The full stack (submit scan → poll → results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install required
+- [x] **OPS-01** *(Bonus C)*: `docker-compose.yml` defines `redis`, `api`, and `worker` services; the worker container sets `mem_limit: 200m` and runs `node --max-old-space-size=150 dist/worker.js`
+- [x] **OPS-02** *(Bonus C)*: The full stack (submit scan → poll → results) works end-to-end via `docker compose up` with no host-side Trivy/Redis install required
 - [x] **OPS-03**: `.env` configuration is schema-validated at boot (Joi via `@nestjs/config`); the app refuses to start on invalid/missing config
 - [x] **OPS-04**: Structured logging correlates log lines to a `scanId` across API and worker
 - [ ] **OPS-05**: An automated test suite covers the ReportParser CRITICAL-filter (unit) and the scan API contract (integration); CI runs lint + type-check + tests
@@ -143,8 +143,8 @@ Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for p
 | FE-01 | Phase 6 | Pending |
 | FE-02 | Phase 6 | Pending |
 | FE-03 | Phase 6 | Pending |
-| OPS-01 | Phase 5 (pulled forward, Bonus C) | Pending |
-| OPS-02 | Phase 5 (pulled forward, Bonus C) | Pending |
+| OPS-01 | Phase 5 (pulled forward, Bonus C) | Complete |
+| OPS-02 | Phase 5 (pulled forward, Bonus C) | Complete |
 | OPS-03 | Phase 1 | Complete |
 | OPS-04 | Phase 5 | Complete |
 | OPS-05 | Phase 5 | Pending |

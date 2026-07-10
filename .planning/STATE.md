@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: packaging-ops-assignment-acceptance
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-07-10T20:23:40.737Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-07-10T20:31:24.955Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 05 (packaging-ops-assignment-acceptance) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 05 execution started
 
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P02 | 8min | 2 tasks | 6 files |
 | Phase 04 P03 | 15min | 3 tasks | 2 files |
 | Phase 05 P01 | 13min | 3 tasks | 13 files |
+| Phase 05 P02 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-01: scanId-correlated logging via a pino adapter behind the existing EngineLogger port; per-job pino.child({scanId}) threaded through the worker; ndjson-only in container (pino-pretty dev-only)
 - [Phase ?]: 05-01: BASE_LOGGER DI token in scan/scan.types.ts (not engine/) so ScanService injects the shared base logger without crossing the engine/ import boundary its ARCH-02 spec forbids
 - [Phase ?]: 05-01 (D-13): WR-01 canonical URL pipe, WR-02 SHUTDOWN_GRACE_MS max 9000, WR-03 non-throwing REDIS_CLIENT error listener
+- [Phase ?]: 05-02: Docker memory cap uses top-level mem_limit:200m (resolves to 209715200 bytes); deploy.resources deliberately absent (silently ignored non-swarm)
+- [Phase ?]: 05-02: api + worker share one code-guardian-app:latest image from the node:22-slim runtime target; differentiated only by per-service command
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T20:23:19.132Z
-Stopped at: Phase 5 context gathered
+Last session: 2026-07-10T20:31:24.948Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: .planning/phases/05-packaging-ops-assignment-acceptance/05-CONTEXT.md
