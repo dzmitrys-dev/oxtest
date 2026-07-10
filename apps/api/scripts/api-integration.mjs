@@ -539,6 +539,30 @@ async function fetchJson(url, init) {
 }
 
 /**
+ * Assert a Nest process shut down CLEANLY on SIGTERM (no SIGKILL, no error exit).
+ *
+ * Nest 11.1.28 (`@nestjs/core/nest-application-context.js:220`) runs ALL shutdown
+ * hooks (`callDestroyHook` → WorkerShutdown bounded drain + `redis.quit()`) and
+ * then RE-RAISES the received signal via `process.kill(process.pid, signal)`
+ * (because `enableShutdownHooks()` uses `useProcessExit:false` by default). So a
+ * clean shutdown terminates with `{code:null, signal:'SIGTERM'}` (status 143),
+ * NOT `{code:0}`. The alternative clean signature `{code:0, signal:null}` arises
+ * only if the Plan 02 unref'ed hard-exit backstop fires (a pathological drain
+ * hang) — also accepted. What we reject: `signal:'SIGKILL'` (forced kill — drain
+ * hung past grace) and `code:1` (a shutdown hook threw — e.g. A2's WorkerHost
+ * getter unreachable). Boundedness (A1) is enforced by the caller's `waitExit`
+ * timeout, which rejects if the process does not exit within the grace window.
+ */
+function assertCleanShutdown(exit, label) {
+  const cleanReraise = exit.code === null && exit.signal === 'SIGTERM';
+  const cleanExitZero = exit.code === 0 && exit.signal === null;
+  assert.ok(
+    cleanReraise || cleanExitZero,
+    `${label}: expected a clean shutdown (re-raised SIGTERM or exit 0), got ${JSON.stringify(exit)}`,
+  );
+}
+
+/**
  * Provision a disposable Redis + a private SCAN_TMP_DIR, run `fn`, and tear down
  * every disposable resource in a status-preserving `finally` (each teardown step
  * is independent so one failure never skips the others). The `ctx` exposes the
@@ -756,6 +780,155 @@ test(
         ['redis', 'status', 'uptime'],
         'down body is exactly {status,redis,uptime}',
       );
+    });
+  },
+);
+
+/* ------------------------------------------------------------------------- *
+ * Task 3 — end-to-end success criterion #5 + graceful SIGTERM shutdown of both
+ * compiled processes, empirically validating RESEARCH Assumptions A1/A2.
+ * ------------------------------------------------------------------------- */
+
+test(
+  'criterion #5 (offline): POST → 202 → Queued → Scanning → Failed(clone) via GET, deterministic no-network',
+  { timeout: FAULT_TERMINAL_TIMEOUT_MS + 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      // API stays default (production). POST FIRST, with NO worker running yet, so
+      // the scan is enqueued and stays Queued — this lets the status observer
+      // capture the initial Queued state before any worker transition. Only then
+      // spawn the worker under NODE_ENV=test so the SCAN_ENGINE_TEST_FAULT=clone
+      // double activates (HIGH-02) and rethrows BEFORE any network call — no real
+      // GitHub clone occurs.
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      // POST through the REAL HTTP boundary → 202 + Queued enqueue.
+      const submit = await fetchJson(`${api.baseUrl}/api/scan`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ repoUrl: VALID_REPO_URL }),
+      });
+      assert.equal(submit.status, 202);
+      assert.equal(submit.body.status, 'Queued');
+      const scanId = submit.body.scanId;
+      assert.ok(typeof scanId === 'string' && scanId.length > 0);
+
+      // Start observing while still Queued, THEN release the worker to process it.
+      const observer = startStatusObserver(ctx.port, scanId);
+      const worker = ctx.spawnWorker({ fault: 'clone', readyMarker: 'none', nodeEnv: 'test' });
+      try {
+        await worker.waitReady(WORKER_READY_TIMEOUT_MS);
+        // Poll the REST GET boundary until the scan reaches Failed.
+        const deadline = Date.now() + FAULT_TERMINAL_TIMEOUT_MS;
+        let poll;
+        for (;;) {
+          poll = await fetchJson(`${api.baseUrl}/api/scan/${scanId}`);
+          if (poll.status === 200 && poll.body.status === 'Failed') break;
+          if (Date.now() > deadline) {
+            throw new Error(`scan did not reach Failed via GET (last: ${JSON.stringify(poll.body)})`);
+          }
+          await sleep(100);
+        }
+
+        assert.equal(poll.status, 200, 'terminal GET returns 200');
+        assert.equal(poll.body.scanId, scanId);
+        assert.equal(poll.body.status, 'Failed');
+        assert.equal(poll.body.error.category, 'clone', 'failure category is clone');
+        assert.equal(typeof poll.body.error.detail, 'string');
+        assert.ok(
+          poll.body.error.detail.length > 0 && poll.body.error.detail.length <= 500,
+          'error detail is bounded (1..500 chars)',
+        );
+
+        await observer.stop();
+        assert.deepEqual(
+          observer.observed,
+          ['Queued', 'Scanning', 'Failed'],
+          `unexpected lifecycle: ${observer.observed.join(' -> ')}`,
+        );
+      } finally {
+        await observer.stop().catch(() => undefined);
+      }
+    });
+  },
+);
+
+test(
+  'criterion #5 (Docker): real Trivy scan of the bundle reaches Finished; GET returns the two pinned CRITICAL CVEs',
+  { timeout: SCAN_TERMINAL_TIMEOUT_MS + 120_000 },
+  async (t) => {
+    if (!isDockerAvailable()) {
+      // Docker-gated: the disposable Redis needs Docker, and a real scan also
+      // needs the Trivy image. Skip cleanly (never fail) when Docker is absent.
+      t.skip('Docker unavailable — skipping the real-Trivy Finished path (D-29 precedent)');
+      return;
+    }
+    await withHarness(async (ctx) => {
+      const scanId = randomUUID();
+      // The bundle is not an https://github.com URL, so it cannot pass the API's
+      // parseGithubUrl guard — seed the Queued job directly (the API enqueue path
+      // is proven separately by the 202 test). The GET boundary is what this
+      // Docker path proves at the REST layer.
+      await seedQueued(ctx.redis, scanId, SAMPLE_BUNDLE);
+
+      const worker = ctx.spawnWorker({ fault: 'none', readyMarker: 'log', nodeEnv: 'production' });
+      await worker.waitReady(WORKER_READY_TIMEOUT_MS);
+      await ctx.openQueue().add('scan', { scanId, repoUrl: SAMPLE_BUNDLE });
+
+      const terminal = await waitTerminal(ctx.redis, scanId, SCAN_TERMINAL_TIMEOUT_MS);
+      assert.equal(terminal, 'Finished', 'a findings scan is a SUCCESS, not a failure');
+
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      const res = await fetchJson(`${api.baseUrl}/api/scan/${scanId}`);
+      assert.equal(res.status, 200, 'Finished GET returns 200');
+      assert.equal(res.body.status, 'Finished');
+      assert.ok(Array.isArray(res.body.criticalVulnerabilities), 'criticalVulnerabilities is an array');
+      assert.deepEqual(
+        res.body.criticalVulnerabilities.map((v) => v.vulnerabilityId),
+        EXPECTED_CRITICAL_IDS,
+        'the two pinned CVEs in report order',
+      );
+      for (const v of res.body.criticalVulnerabilities) {
+        assert.equal(v.severity, 'CRITICAL');
+      }
+    });
+  },
+);
+
+test(
+  'shutdown: compiled worker shuts down cleanly (re-raised SIGTERM, no SIGKILL) within SHUTDOWN_GRACE_MS on SIGTERM (validates A1/A2)',
+  { timeout: SHUTDOWN_GRACE_MS + SHUTDOWN_MARGIN_MS + 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      // Idle worker (no job enqueued) — deterministic, no Docker/Trivy needed.
+      const worker = ctx.spawnWorker({ fault: 'none', readyMarker: 'none', nodeEnv: 'production' });
+      await worker.waitReady(WORKER_READY_TIMEOUT_MS);
+
+      worker.child.kill('SIGTERM');
+      // A clean exit-0 within the grace window empirically validates RESEARCH A1
+      // (the custom bounded raceDrain coexists with @nestjs/bullmq's own teardown)
+      // and A2 (WorkerHost.worker is reachable at destroy time — a broken getter
+      // would throw in onModuleDestroy and block this clean exit within grace).
+      const exit = await worker.waitExit(SHUTDOWN_GRACE_MS + SHUTDOWN_MARGIN_MS);
+      assertCleanShutdown(exit, 'worker SIGTERM');
+    });
+  },
+);
+
+test(
+  'shutdown: compiled API shuts down cleanly (re-raised SIGTERM, no SIGKILL) on SIGTERM',
+  { timeout: 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      api.child.kill('SIGTERM');
+      const exit = await api.waitExit(15_000);
+      assertCleanShutdown(exit, 'API SIGTERM');
     });
   },
 );
