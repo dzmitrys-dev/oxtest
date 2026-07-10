@@ -57,3 +57,44 @@ describe('envValidationSchema — SCAN_GIT_ALLOWED_PROTOCOLS', () => {
     expect(GIT_TRANSPORT_ALLOWLIST).not.toContain('ext');
   });
 });
+
+/**
+ * WR-02 (D-13) — cap SHUTDOWN_GRACE_MS under Docker's 10s SIGTERM→SIGKILL stop
+ * window. The backstop fires at grace+margin, so a max of 9000 keeps the drain
+ * window closing before an external SIGKILL rather than being hard-killed.
+ */
+describe('envValidationSchema — SHUTDOWN_GRACE_MS bound (WR-02)', () => {
+  const base = {
+    REDIS_HOST: '127.0.0.1',
+    REDIS_PORT: 6379,
+    SCAN_TMP_DIR: '/scan-tmp',
+  };
+
+  const graceOf = (env: Record<string, unknown>): number | undefined => {
+    const result = envValidationSchema.validate(env) as {
+      value: { SHUTDOWN_GRACE_MS?: number };
+    };
+    return result.value.SHUTDOWN_GRACE_MS;
+  };
+
+  it('defaults to 8000 when unset (< Docker 10s stop grace)', () => {
+    const { error } = envValidationSchema.validate(base);
+    expect(error).toBeUndefined();
+    expect(graceOf(base)).toBe(8000);
+  });
+
+  it('accepts the boundary value 9000', () => {
+    const env = { ...base, SHUTDOWN_GRACE_MS: 9000 };
+    const { error } = envValidationSchema.validate(env);
+    expect(error).toBeUndefined();
+    expect(graceOf(env)).toBe(9000);
+  });
+
+  it('rejects 9001 (boot refuses — would risk draining past the stop window)', () => {
+    const { error } = envValidationSchema.validate({
+      ...base,
+      SHUTDOWN_GRACE_MS: 9001,
+    });
+    expect(error).toBeDefined();
+  });
+});

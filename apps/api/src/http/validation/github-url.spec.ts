@@ -66,6 +66,30 @@ describe('GithubUrlPipe', () => {
     expect(pipe.transform(value)).toEqual(value);
   });
 
+  it('WR-01: an already-canonical URL round-trips unchanged', () => {
+    expect(pipe.transform({ repoUrl: 'https://github.com/octo-cat/repo' })).toEqual(
+      { repoUrl: 'https://github.com/octo-cat/repo' },
+    );
+  });
+
+  it('WR-01: strips a trailing .git so the used string equals the validated form', () => {
+    expect(
+      pipe.transform({ repoUrl: 'https://github.com/OWASP/NodeGoat.git' }),
+    ).toEqual({ repoUrl: 'https://github.com/OWASP/NodeGoat' });
+  });
+
+  it('WR-01: normalizes the www. host to the canonical github.com form', () => {
+    expect(pipe.transform({ repoUrl: 'https://www.github.com/o/r' })).toEqual({
+      repoUrl: 'https://github.com/o/r',
+    });
+  });
+
+  it('WR-01: normalizes a trailing slash to the canonical form', () => {
+    expect(pipe.transform({ repoUrl: 'https://github.com/owner/repo/' })).toEqual(
+      { repoUrl: 'https://github.com/owner/repo' },
+    );
+  });
+
   it('throws BadRequestException on an invalid repoUrl', () => {
     expect(() =>
       pipe.transform({ repoUrl: 'git://github.com/owner/repo' }),
