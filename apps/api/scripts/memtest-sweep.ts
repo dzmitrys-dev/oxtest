@@ -12,14 +12,13 @@ const CHILD_HEAP_MB = 150;
 const CHILD_TIMEOUT_MS = 5 * 60 * 1000;
 const CHILD_KILL_GRACE_MS = 2_000;
 const FIXTURE_PREFIX = '/tmp/oxtest-phase2-sweep-';
-const COMPILED_SCRIPT_DIR = resolve(__dirname.endsWith('/dist/scripts') ? __dirname : resolve(__dirname, '../dist/scripts'));
-const RUNTIME_SCRIPT_DIR = existsSync(resolve(COMPILED_SCRIPT_DIR, 'memtest.js'))
-  ? COMPILED_SCRIPT_DIR
-  : __dirname;
-const SCRIPT_LAUNCH_ARGS = RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR
+const COMPILED_ENTRYPOINT = /[\\/]dist[\\/]scripts[\\/]memtest-sweep\.js$/.test(__filename);
+const RUNTIME_SCRIPT_DIR = __dirname;
+const SCRIPT_LAUNCH_ARGS = COMPILED_ENTRYPOINT
   ? []
   : [resolve(__dirname, '../../../node_modules/tsx/dist/cli.mjs')];
-const MEMTEST_PATH = resolve(RUNTIME_SCRIPT_DIR, RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR ? 'memtest.js' : 'memtest.ts');
+const CHILD_SCRIPT_EXTENSION = COMPILED_ENTRYPOINT ? 'js' : 'ts';
+const MEMTEST_PATH = resolve(RUNTIME_SCRIPT_DIR, `memtest.${CHILD_SCRIPT_EXTENSION}`);
 type ProcessRunner = (args: string[], captureOutput: boolean) => Promise<string>;
 type FixturePathFactory = (sizeMb: number) => string;
 
@@ -44,7 +43,7 @@ function generatorArguments(sizeMb: number, fixturePath: string): string[] {
   const args = [
     `--max-old-space-size=${CHILD_HEAP_MB}`,
     ...SCRIPT_LAUNCH_ARGS,
-    resolve(RUNTIME_SCRIPT_DIR, RUNTIME_SCRIPT_DIR === COMPILED_SCRIPT_DIR ? 'gen-fixture.js' : 'gen-fixture.ts'),
+    resolve(RUNTIME_SCRIPT_DIR, `gen-fixture.${CHILD_SCRIPT_EXTENSION}`),
     '--size-mb',
     String(sizeMb),
     '--output',
@@ -134,28 +133,35 @@ export async function runCase(
     fixtureCreated = true;
     const stdout = await processRunner(memtestArguments(fixturePath), true);
     console.log(stdout.trim());
-    const metrics = JSON.parse(stdout) as { peakRssMb?: unknown };
-    if (typeof metrics.peakRssMb !== 'number' || !Number.isFinite(metrics.peakRssMb)) {
-      throw new Error(`Memory test did not report a numeric peak RSS for ${sizeMb}MB`);
+    const metrics = JSON.parse(stdout) as { peakRssBytes?: unknown; peakRssMb?: unknown };
+    if (typeof metrics.peakRssBytes !== 'number' || !Number.isFinite(metrics.peakRssBytes)) {
+      throw new Error(`Memory test did not report raw peak RSS for ${sizeMb}MB`);
     }
-    return metrics.peakRssMb;
+    return metrics.peakRssBytes;
   } finally {
     if (fixtureCreated && existsSync(fixturePath)) unlinkSync(fixturePath);
   }
 }
 
+export function assertWithinSweepBand(peakRssBytes: number, baselineRssBytes: number): void {
+  const bandBytes = RSS_BAND_MB * 1024 * 1024;
+  if (peakRssBytes > baselineRssBytes + bandBytes) {
+    const peakRssMb = Number((peakRssBytes / 1024 / 1024).toFixed(1));
+    const baselineRssMb = Number((baselineRssBytes / 1024 / 1024).toFixed(1));
+    throw new Error(
+      `Peak RSS ${peakRssMb}MB exceeds baseline ${baselineRssMb}MB plus ${RSS_BAND_MB}MB band`,
+    );
+  }
+}
+
 async function main(): Promise<void> {
   const { sizes, dryRun } = parseArguments(process.argv.slice(2));
-  let baselineRssMb: number | undefined;
+  let baselineRssBytes: number | undefined;
   for (const size of sizes) {
-    const peakRssMb = await runCase(size, dryRun);
-    if (peakRssMb !== undefined) {
-      baselineRssMb ??= peakRssMb;
-      if (peakRssMb > baselineRssMb + RSS_BAND_MB) {
-        throw new Error(
-          `Peak RSS ${peakRssMb}MB exceeds baseline ${baselineRssMb}MB plus ${RSS_BAND_MB}MB band`,
-        );
-      }
+    const peakRssBytes = await runCase(size, dryRun);
+    if (peakRssBytes !== undefined) {
+      baselineRssBytes ??= peakRssBytes;
+      assertWithinSweepBand(peakRssBytes, baselineRssBytes);
     }
   }
 }

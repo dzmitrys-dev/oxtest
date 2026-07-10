@@ -95,6 +95,7 @@ export async function runMemoryTest(
   const metrics = {
     fixturePath,
     criticalCount,
+    peakRssBytes: peaks.rss,
     peakRssMb: Number((peaks.rss / 1024 / 1024).toFixed(1)),
     peakHeapUsedMb: Number((peaks.heapUsed / 1024 / 1024).toFixed(1)),
     peakExternalMb: Number((peaks.external / 1024 / 1024).toFixed(1)),

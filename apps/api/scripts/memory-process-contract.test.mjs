@@ -6,7 +6,7 @@ import yaml from 'js-yaml';
 import test from 'node:test';
 
 const source = await readFile(new URL('./memtest-sweep.ts', import.meta.url), 'utf8');
-const { runCase, runProcess } = await import('./memtest-sweep.ts');
+const { assertWithinSweepBand, runCase, runProcess } = await import('./memtest-sweep.ts');
 const generatorPath = new URL('./gen-fixture.ts', import.meta.url).pathname;
 const memtestPath = new URL('./memtest.ts', import.meta.url).pathname;
 const { assertRssWithinThreshold } = await import('./memory-threshold.ts');
@@ -20,6 +20,8 @@ test('memory sweep uses validated argv arrays and disables shell execution', () 
   assert.match(source, /\{\s*shell: false/);
   assert.match(source, /validateSize/);
   assert.match(source, /validateChildArguments/);
+  assert.match(source, /COMPILED_ENTRYPOINT/);
+  assert.match(source, /memtest\.\$\{CHILD_SCRIPT_EXTENSION\}/);
   assert.ok(source.indexOf('validateChildArguments') < source.indexOf('spawn('));
   assert.ok(source.indexOf('generatorArguments') < source.indexOf('spawn('));
   assert.ok(source.indexOf('memtestArguments') < source.indexOf('spawn('));
@@ -141,6 +143,16 @@ test('RSS threshold rejects fractional-byte overage before metric rounding', () 
   );
 });
 
+test('sweep RSS band compares raw bytes before display rounding', () => {
+  const baselineBytes = 100 * 1024 * 1024;
+  const bandBytes = 40 * 1024 * 1024;
+  assert.doesNotThrow(() => assertWithinSweepBand(baselineBytes + bandBytes, baselineBytes));
+  assert.throws(
+    () => assertWithinSweepBand(baselineBytes + bandBytes + 1, baselineBytes),
+    /exceeds baseline 100MB plus 40MB band/,
+  );
+});
+
 test('child failures and timeouts reject without leaving the caller hanging', async () => {
   await assert.rejects(
     runProcess(['-e', 'process.exit(7)'], true, 1_000),
@@ -170,7 +182,8 @@ test('sweep removes a generated fixture when a child fails', async () => {
 });
 
 test('sweep preserves a pre-existing fixture when generation fails', async () => {
-  const fixturePath = '/tmp/oxtest-phase2-sweep-pre-existing.json';
+  const directory = await mkdtemp(join(tmpdir(), 'oxtest-sweep-pre-existing-'));
+  const fixturePath = join(directory, 'pre-existing.json');
   const original = '{"preExisting":true}';
   await writeFile(fixturePath, original);
 
@@ -181,7 +194,7 @@ test('sweep preserves a pre-existing fixture when generation fails', async () =>
     );
     assert.equal(await readFile(fixturePath, 'utf8'), original);
   } finally {
-    await rm(fixturePath, { force: true });
+    await rm(directory, { recursive: true, force: true });
   }
 });
 
@@ -195,7 +208,7 @@ test('concurrent sweep cases use distinct fixture paths and clean up their own f
       await writeFile(fixturePath, '{}');
       return '';
     }
-    return '{"peakRssMb":100}';
+    return '{"peakRssBytes":104857600,"peakRssMb":100}';
   };
 
   await Promise.all([
