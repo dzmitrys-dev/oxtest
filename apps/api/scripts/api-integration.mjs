@@ -172,6 +172,10 @@ async function connectRedis(port) {
     maxRetriesPerRequest: null,
     lazyConnect: false,
   });
+  // The /health 503 case deliberately kills the disposable Redis while this
+  // client is still connected; ioredis then emits reconnect 'error' events.
+  // Swallow them so the expected teardown produces no noisy unhandled-error logs.
+  redis.on('error', () => {});
   const deadline = Date.now() + REDIS_READY_TIMEOUT_MS;
   for (;;) {
     try {
@@ -611,6 +615,147 @@ test(
       assert.equal(body.status, 'ok', "health body status === 'ok'");
       assert.equal(body.redis, 'up', "health body redis === 'up'");
       assert.equal(typeof body.uptime, 'number', 'health body uptime is a number');
+    });
+  },
+);
+
+/* ------------------------------------------------------------------------- *
+ * Task 2 — REST contract proofs against the compiled API (no worker spawned,
+ * so every case is offline and deterministic; a valid GitHub URL is submitted
+ * only as a validation input and is NEVER actually cloned).
+ * ------------------------------------------------------------------------- */
+
+/** A valid GitHub target (the assignment's NodeGoat) used only as an input. */
+const VALID_REPO_URL = 'https://github.com/OWASP/NodeGoat';
+
+test(
+  'POST /api/scan valid URL → 202 {scanId,status:Queued} and a real Queued enqueue in Redis',
+  { timeout: 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      const { status, contentType, body } = await fetchJson(`${api.baseUrl}/api/scan`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ repoUrl: VALID_REPO_URL }),
+      });
+
+      assert.equal(status, 202, 'valid submit returns HTTP 202');
+      assert.ok((contentType ?? '').includes('application/json'), 'response is JSON');
+      assert.equal(typeof body.scanId, 'string');
+      assert.ok(body.scanId.length > 0, 'scanId is a non-empty string');
+      assert.equal(body.status, 'Queued');
+      assert.deepEqual(
+        Object.keys(body).sort(),
+        ['scanId', 'status'],
+        'body is exactly {scanId, status}',
+      );
+
+      // Real enqueue side effect: a Queued scan:<id> hash exists (no worker was
+      // spawned, so it stays Queued — no network clone ever happens).
+      assert.equal(await ctx.redis.hget(`scan:${body.scanId}`, 'status'), 'Queued');
+      assert.equal(await ctx.redis.hget(`scan:${body.scanId}`, 'repoUrl'), VALID_REPO_URL);
+    });
+  },
+);
+
+/** The D-02 reject matrix (mirrors 04-01 Task 1 <behavior>). */
+const REJECT_ROWS = [
+  { label: 'missing body', kind: 'no-body' },
+  { label: 'empty object (no repoUrl)', kind: 'json', payload: {} },
+  { label: 'empty string repoUrl', kind: 'json', payload: { repoUrl: '' } },
+  { label: 'ssh scp-syntax', kind: 'json', payload: { repoUrl: 'git@github.com:OWASP/NodeGoat.git' } },
+  { label: 'git:// transport', kind: 'json', payload: { repoUrl: 'git://github.com/OWASP/NodeGoat' } },
+  { label: 'file:// transport', kind: 'json', payload: { repoUrl: 'file:///etc/passwd' } },
+  { label: 'http (not https)', kind: 'json', payload: { repoUrl: 'http://github.com/OWASP/NodeGoat' } },
+  { label: 'embedded userinfo', kind: 'json', payload: { repoUrl: 'https://user:pass@github.com/OWASP/NodeGoat' } },
+  { label: 'non-standard port', kind: 'json', payload: { repoUrl: 'https://github.com:8443/OWASP/NodeGoat' } },
+  { label: 'look-alike host', kind: 'json', payload: { repoUrl: 'https://github.com.evil.com/OWASP/NodeGoat' } },
+  { label: 'single path segment', kind: 'json', payload: { repoUrl: 'https://github.com/OWASP' } },
+];
+
+test(
+  'POST /api/scan malformed URLs → 400 BEFORE enqueue (zero scan:* keys, empty queue)',
+  { timeout: 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      for (const row of REJECT_ROWS) {
+        const init =
+          row.kind === 'no-body'
+            ? { method: 'POST' }
+            : {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(row.payload),
+              };
+        const { status } = await fetchJson(`${api.baseUrl}/api/scan`, init);
+        assert.equal(status, 400, `${row.label} → 400`);
+      }
+
+      // 400-before-enqueue invariant at the process boundary: no domain scan
+      // record was created AND no BullMQ job was enqueued (enqueue never ran).
+      const keys = await ctx.redis.keys('scan:*');
+      assert.deepEqual(keys, [], `no scan:* records created (found: ${keys.join(', ')})`);
+
+      const counts = await ctx.openQueue().getJobCounts();
+      for (const [state, n] of Object.entries(counts)) {
+        assert.equal(n, 0, `BullMQ queue must be empty; ${state}=${n}`);
+      }
+    });
+  },
+);
+
+test(
+  'GET /api/scan/:unknownId → 404',
+  { timeout: 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      const res = await fetch(`${api.baseUrl}/api/scan/${randomUUID()}`);
+      assert.equal(res.status, 404, 'unknown scanId → 404');
+    });
+  },
+);
+
+test(
+  'GET /health → 200 with live Redis, then 503 {status:error,redis:down,uptime} after Redis is killed',
+  { timeout: 120_000 },
+  async () => {
+    await withHarness(async (ctx) => {
+      const api = await ctx.spawnApi({});
+      await api.waitReady(API_READY_TIMEOUT_MS);
+
+      const before = await fetchJson(`${api.baseUrl}/health`);
+      assert.equal(before.status, 200, 'health 200 while Redis is live');
+      assert.equal(before.body.redis, 'up');
+
+      // Kill the disposable Redis container; the API's ioredis client loses its
+      // socket, so the bounded active PING (HealthService ~1s race) fails → 503.
+      ctx.killRedis();
+
+      const deadline = Date.now() + 10_000;
+      let last = before;
+      while (Date.now() < deadline) {
+        last = await fetchJson(`${api.baseUrl}/health`);
+        if (last.status === 503) break;
+        await sleep(250);
+      }
+      assert.equal(last.status, 503, 'health transitions to 503 after Redis is killed');
+      assert.equal(last.body.status, 'error');
+      assert.equal(last.body.redis, 'down');
+      assert.equal(typeof last.body.uptime, 'number');
+      assert.deepEqual(
+        Object.keys(last.body).sort(),
+        ['redis', 'status', 'uptime'],
+        'down body is exactly {status,redis,uptime}',
+      );
     });
   },
 );
