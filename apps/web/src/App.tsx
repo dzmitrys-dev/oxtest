@@ -155,8 +155,12 @@ function ResultsTable({ rows }: { rows: Vulnerability[] }): React.JSX.Element {
   );
 }
 
+// Prefill the input with the assignment's demo target so a reviewer can scan
+// with one click; still fully editable (and validated on the same allowlist).
+const DEFAULT_REPO_URL = 'https://github.com/OWASP/NodeGoat';
+
 export function App(): React.JSX.Element {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(DEFAULT_REPO_URL);
   const [touched, setTouched] = useState(false);
   const [scanId, setScanId] = useState<string | null>(null);
   const [submittedRepo, setSubmittedRepo] = useState<string | null>(null);

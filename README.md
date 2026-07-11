@@ -30,15 +30,18 @@ docker compose up --build
 ```
 
 This starts exactly **three services** — `redis` + `api` + `worker` — and serves
-everything on a single origin:
+everything on a single origin. The API listens on `:3000` **inside** the
+container; compose publishes it on host port **`3100`** (avoids a common `:3000`
+clash). To use a different host port, edit the `api` `ports:` mapping in
+`docker-compose.yml` (e.g. `"3000:3000"`).
 
 | URL | What |
 | --- | --- |
-| <http://localhost:3000/> | **React status UI** (submit a repo URL, watch it scan, see CRITICAL results) |
-| <http://localhost:3000/graphiql> | **Interactive GraphQL playground** (run the mutation + query by hand) |
-| `POST http://localhost:3000/api/scan` | **REST** — enqueue a scan |
-| `GET  http://localhost:3000/api/scan/:scanId` | **REST** — poll a scan |
-| `GET  http://localhost:3000/health` | Liveness (200 healthy / 503 when Redis is down) |
+| <http://localhost:3100/> | **React status UI** (submit a repo URL, watch it scan, see CRITICAL results) |
+| <http://localhost:3100/graphiql> | **Interactive GraphQL playground** (run the mutation + query by hand) |
+| `POST http://localhost:3100/api/scan` | **REST** — enqueue a scan |
+| `GET  http://localhost:3100/api/scan/:scanId` | **REST** — poll a scan |
+| `GET  http://localhost:3100/health` | Liveness (200 healthy / 503 when Redis is down) |
 
 The **worker** reaches the security scanner as a *sibling container* through the
 mounted Docker socket, invoking the pinned image
@@ -55,17 +58,17 @@ compose defaults, no secrets): `PORT`, `REDIS_HOST`, `REDIS_PORT`,
 
 ### Try a real scan (OWASP NodeGoat demo)
 
-With the stack up, open <http://localhost:3000/> and submit the deliberately
+With the stack up, open <http://localhost:3100/> and submit the deliberately
 vulnerable **OWASP NodeGoat** repository, or drive it over the API:
 
 ```bash
 # 1) Enqueue a scan (REST). Returns 202 { "scanId": "...", "status": "Queued" }
-curl -s -X POST http://localhost:3000/api/scan \
+curl -s -X POST http://localhost:3100/api/scan \
   -H 'content-type: application/json' \
   -d '{"repoUrl":"https://github.com/OWASP/NodeGoat"}'
 
 # 2) Poll it (REST). Substitute the scanId from step 1.
-curl -s http://localhost:3000/api/scan/<scanId>
+curl -s http://localhost:3100/api/scan/<scanId>
 # -> { "scanId": "...", "status": "Finished", "criticalVulnerabilities": [ ... ] }
 ```
 

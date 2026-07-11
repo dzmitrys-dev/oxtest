@@ -19,8 +19,9 @@ services:
     restart: unless-stopped
 
   # REST API (Fastify). Entrypoint is `node dist/index.js` — the assignment's
-  # verbatim self-test command (D-04). Publishes 3000 to the host for the
-  # reviewer; keys its healthcheck off GET /health (200 ok / 503 on Redis down).
+  # verbatim self-test command (D-04). Listens on :3000 INSIDE the container and
+  # is published on host port 3100 (avoids a common :3000 clash); keys its
+  # healthcheck off GET /health (200 ok / 503 on Redis down).
   #
   # SERVED UI (Bonus A, D-04): this same process also serves the built React SPA
   # at `/` from dist/web (ServeStaticModule) on the SAME origin/port — one URL,
@@ -42,7 +43,9 @@ services:
       REDIS_PORT: "6379"
       SCAN_TMP_DIR: /tmp/scans
     ports:
-      - "3000:3000"
+      # host:container — API listens on 3000 inside; published on 3100 to dodge
+      # a common host :3000 clash. Change the host side to remap (e.g. 3000:3000).
+      - "3100:3000"
     depends_on:
       - redis
     healthcheck:
