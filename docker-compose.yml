@@ -90,6 +90,20 @@ services:
       # ONBOARDING (Phase 6). Worker still runs as non-root `node` in its own
       # container and only invokes the pinned scanner image.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Shared scan workdir (06-UAT fix). Under Docker-outside-of-Docker the
+      # worker invokes Trivy against the HOST daemon, so a `-v` bind of the
+      # worker's OVERLAY clone dir would resolve to an empty host path. Making
+      # /tmp/scans a NAMED VOLUME lets the sibling inherit it verbatim via
+      # `docker run --volumes-from <worker>` at the SAME path — the report Trivy
+      # writes is the exact path the worker then reads. The Dockerfile pre-owns
+      # /tmp/scans as `node`, so the volume initializes writable for non-root.
+      # Reclaim with `docker compose down -v`.
+      - scans:/tmp/scans
     depends_on:
       - redis
     restart: unless-stopped
+
+# Named volume backing the per-scan workdir shared with the Trivy sibling
+# container (see the worker `volumes:` note above).
+volumes:
+  scans:

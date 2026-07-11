@@ -2,6 +2,7 @@ import {
   TrivyRunnerAdapter,
   TRIVY_DOCKER_IMAGE,
   DEFAULT_TRIVY_TIMEOUT_MS,
+  resolveSelfContainerRef,
 } from './trivy-runner.adapter';
 import {
   SubprocessRunError,
@@ -85,6 +86,7 @@ describe('TrivyRunnerAdapter', () => {
     };
     const adapter = new TrivyRunnerAdapter({
       runner,
+      dockerSelfRef: 'worker-cid',
       stat: (): Promise<void> => Promise.resolve(),
     });
 
@@ -92,25 +94,26 @@ describe('TrivyRunnerAdapter', () => {
 
     expect(calls).toHaveLength(2);
     expect(calls[1]?.file).toBe('docker');
+    // DooD sibling sharing: --volumes-from <self> mounts the worker's /tmp/scans
+    // volume into the Trivy sibling at the SAME path, so cloneDir/reportPath pass
+    // through unchanged (no /src://out remap — that was the host-vs-overlay bug).
     expect(calls[1]?.args).toEqual([
       'run',
       '--rm',
+      '--volumes-from',
+      'worker-cid',
       '--mount',
       'type=tmpfs,destination=/root/.cache/trivy',
-      '-v',
-      `${CLONE_DIR}:/src:ro`,
-      '-v',
-      '/scan-root/scan-abc-uuid-1/out:/out',
       TRIVY_DOCKER_IMAGE,
       'filesystem',
       '--format',
       'json',
       '--output',
-      '/out/report.json',
+      REPORT_PATH,
       '--no-progress',
       '--exit-code',
       '0',
-      '/src',
+      CLONE_DIR,
     ]);
     expect(calls[1]?.options).toEqual({
       shell: false,
@@ -205,5 +208,34 @@ describe('TrivyRunnerAdapter', () => {
       }),
     ).rejects.toMatchObject({ code: 'ENOENT' });
     expect(readyCalled).toBe(false);
+  });
+});
+
+describe('resolveSelfContainerRef', () => {
+  const CID = 'a1b2c3d4e5f6';
+
+  it('returns HOSTNAME when it looks like a container id', () => {
+    const ref = resolveSelfContainerRef({ HOSTNAME: CID }, () => undefined);
+    expect(ref).toBe(CID);
+  });
+
+  it('falls back to /proc/self/mountinfo when HOSTNAME is a custom name', () => {
+    const fullId = 'f'.repeat(64);
+    const ref = resolveSelfContainerRef(
+      { HOSTNAME: 'my-worker' },
+      () => fullId,
+    );
+    expect(ref).toBe(fullId);
+  });
+
+  it('uses HOSTNAME as a last resort when mountinfo yields nothing', () => {
+    const ref = resolveSelfContainerRef({ HOSTNAME: 'my-worker' }, () => undefined);
+    expect(ref).toBe('my-worker');
+  });
+
+  it('throws when no id can be resolved at all', () => {
+    expect(() => resolveSelfContainerRef({}, () => undefined)).toThrow(
+      /Cannot resolve own container id/,
+    );
   });
 });

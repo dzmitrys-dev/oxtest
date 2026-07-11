@@ -82,6 +82,13 @@ RUN npm ci --omit=dev --workspace apps/api --include-workspace-root \
 # planning docs and build tooling never enter the runtime image.
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
+# Pre-create the per-scan workdir owned by `node` (06-UAT fix). The compose
+# `scans:` NAMED VOLUME mounts here and initializes its ownership from this
+# image path, so the non-root `node` user can write scan subdirs — and the
+# Trivy sibling container inherits the SAME volume via `--volumes-from`.
+# (A bare bind mount would instead appear root-owned and block non-root writes.)
+RUN mkdir -p /tmp/scans && chown node:node /tmp/scans
+
 # Runtime entrypoint (gap 05-04): the container STARTS as root solely so the
 # entrypoint can grant the `node` user the mounted docker.sock's (host-specific)
 # group, then it drops to non-root `node` via setpriv before exec'ing the app.

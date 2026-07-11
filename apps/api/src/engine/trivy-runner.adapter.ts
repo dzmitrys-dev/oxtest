@@ -1,5 +1,5 @@
+import { readFileSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { basename, dirname } from 'node:path';
 
 import type { TrivyRunner, TrivyRunOptions } from './trivy-runner.port';
 import {
@@ -22,11 +22,52 @@ export const TRIVY_DOCKER_IMAGE = 'ghcr.io/aquasecurity/trivy:0.69.3';
  */
 export const DEFAULT_TRIVY_TIMEOUT_MS = 600_000;
 
-/** Container mount points for the Docker fallback (D-16). */
-const CONTAINER_SRC = '/src';
-const CONTAINER_OUT = '/out';
 /** Ephemeral in-container cache — tmpfs so it is discarded with `--rm` (D-17). */
 const CONTAINER_CACHE = '/root/.cache/trivy';
+
+/**
+ * Resolve THIS worker container's id for `docker run --volumes-from <self>`.
+ *
+ * The worker invokes the sibling Trivy container through the mounted HOST
+ * docker socket (DooD), so any `-v <src>:<dst>` it passes has `<src>` resolved
+ * on the HOST filesystem — never the worker's own overlay. The scan workdir
+ * therefore MUST be a real Docker volume propagated into the sibling via
+ * `--volumes-from`, which mounts it at the SAME absolute path the worker uses
+ * (06-UAT: sibling-container namespace mismatch → ENOENT + host litter).
+ *
+ * `HOSTNAME` is the short container id under docker/compose (we set neither
+ * `hostname:` nor `container_name:` on the worker service). Fall back to
+ * parsing `/proc/self/mountinfo` for cgroup-v2 hosts where `HOSTNAME` may be
+ * overridden or where a custom hostname was injected.
+ */
+export function resolveSelfContainerRef(
+  env: NodeJS.ProcessEnv = process.env,
+  readContainerId: () => string | undefined = readContainerIdFromMountInfo,
+): string {
+  const hostname = env.HOSTNAME;
+  if (hostname && /^[0-9a-f]{12,64}$/i.test(hostname)) {
+    return hostname;
+  }
+  const fromMountInfo = readContainerId();
+  if (fromMountInfo) {
+    return fromMountInfo;
+  }
+  if (hostname) {
+    return hostname;
+  }
+  throw new Error(
+    'Cannot resolve own container id for `docker run --volumes-from` — set HOSTNAME or run inside a container',
+  );
+}
+
+function readContainerIdFromMountInfo(): string | undefined {
+  try {
+    const info = readFileSync('/proc/self/mountinfo', 'utf8');
+    return info.match(/\/docker\/containers\/([0-9a-f]{64})\//i)?.[1];
+  } catch {
+    return undefined;
+  }
+}
 
 export interface TrivyRunnerOptions {
   /** Local binary name/path (defaults to `trivy` on PATH). */
@@ -35,6 +76,11 @@ export interface TrivyRunnerOptions {
   dockerCommand?: string;
   /** Overridable only for tests; production always uses the pinned image. */
   dockerImage?: string;
+  /**
+   * Overridable only for tests; production resolves THIS container's id via
+   * {@link resolveSelfContainerRef} for the sibling `--volumes-from` mount.
+   */
+  dockerSelfRef?: string;
   runner?: SubprocessRunner;
   stat?: (reportPath: string) => Promise<void>;
   /** Wall-clock budget per Trivy invocation (defaults to {@link DEFAULT_TRIVY_TIMEOUT_MS}). */
@@ -55,6 +101,8 @@ export class TrivyRunnerAdapter implements TrivyRunner {
   private readonly localCommand: string;
   private readonly dockerCommand: string;
   private readonly dockerImage: string;
+  private readonly dockerSelfRefOverride: string | undefined;
+  private resolvedSelfRef: string | undefined;
   private readonly runner: SubprocessRunner;
   private readonly statReport: (reportPath: string) => Promise<void>;
   private readonly timeoutMs: number;
@@ -63,6 +111,7 @@ export class TrivyRunnerAdapter implements TrivyRunner {
     this.localCommand = options.localCommand ?? 'trivy';
     this.dockerCommand = options.dockerCommand ?? 'docker';
     this.dockerImage = options.dockerImage ?? TRIVY_DOCKER_IMAGE;
+    this.dockerSelfRefOverride = options.dockerSelfRef;
     this.runner = options.runner ?? createSpawnSubprocessRunner();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TRIVY_TIMEOUT_MS;
     this.statReport =
@@ -123,30 +172,39 @@ export class TrivyRunnerAdapter implements TrivyRunner {
     ];
   }
 
+  /** THIS container's id for the sibling `--volumes-from` mount (cached). */
+  private selfContainerRef(): string {
+    if (this.dockerSelfRefOverride !== undefined) {
+      return this.dockerSelfRefOverride;
+    }
+    this.resolvedSelfRef ??= resolveSelfContainerRef();
+    return this.resolvedSelfRef;
+  }
+
   private buildDockerArgs(cloneDir: string, reportPath: string): string[] {
-    const reportParent = dirname(reportPath);
-    const reportFile = basename(reportPath);
+    // DooD sibling sharing: `--volumes-from <self>` mounts the worker's real
+    // `/tmp/scans` volume into the Trivy sibling at the SAME absolute path, so
+    // `cloneDir`/`reportPath` pass through UNCHANGED — no `/src`//`/out` remap,
+    // which was the host-vs-overlay ENOENT bug (06-UAT). Bind `-v` is unusable
+    // here because the host daemon would resolve its source on the host FS.
     return [
       'run',
       '--rm',
-      // Ephemeral per-scan cache: tmpfs discarded when the container exits.
+      '--volumes-from',
+      this.selfContainerRef(),
+      // Ephemeral per-scan Trivy cache: tmpfs discarded when the sibling exits.
       '--mount',
       `type=tmpfs,destination=${CONTAINER_CACHE}`,
-      // Read-only clone mount; writable report-parent mount.
-      '-v',
-      `${cloneDir}:${CONTAINER_SRC}:ro`,
-      '-v',
-      `${reportParent}:${CONTAINER_OUT}`,
       this.dockerImage,
       'filesystem',
       '--format',
       'json',
       '--output',
-      `${CONTAINER_OUT}/${reportFile}`,
+      reportPath,
       '--no-progress',
       '--exit-code',
       '0',
-      CONTAINER_SRC,
+      cloneDir,
     ];
   }
 }
