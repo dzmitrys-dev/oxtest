@@ -17,6 +17,10 @@ export interface TrivyVulnerability {
   PkgName: string;
   InstalledVersion: string;
   Severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
-  Title: string;
-  PrimaryURL: string;
+  // Display-only and OPTIONAL in real Trivy output — many advisories (e.g.
+  // NSWG npm entries) omit PrimaryURL, and some omit Title. The parser must
+  // NOT fail a scan over a missing display field (06-UAT); it defaults these
+  // to '' when absent.
+  Title?: string;
+  PrimaryURL?: string;
 }

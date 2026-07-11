@@ -17,8 +17,14 @@ function toVulnerability(vulnerability: TrivyVulnerability): Vulnerability {
     pkgName: vulnerability.PkgName,
     installedVersion: vulnerability.InstalledVersion,
     severity: 'CRITICAL',
-    title: vulnerability.Title,
-    primaryUrl: vulnerability.PrimaryURL,
+    // Title/PrimaryURL are display-only and OPTIONAL in real Trivy output —
+    // default to '' rather than dropping the finding or failing the scan
+    // (06-UAT: a MEDIUM leaf missing PrimaryURL previously killed the run).
+    title: typeof vulnerability.Title === 'string' ? vulnerability.Title : '',
+    primaryUrl:
+      typeof vulnerability.PrimaryURL === 'string'
+        ? vulnerability.PrimaryURL
+        : '',
   };
 }
 
@@ -29,18 +35,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function validateVulnerability(value: unknown): TrivyVulnerability {
+  // Strict on the identity + classification fields (always present in real
+  // Trivy output). Title/PrimaryURL are display-only and legitimately absent
+  // for some advisories, so they are validated leniently in toVulnerability
+  // (default '') rather than failing the scan — see 06-UAT.
   if (
     !isRecord(value) ||
     typeof value.VulnerabilityID !== 'string' ||
     typeof value.PkgName !== 'string' ||
     typeof value.InstalledVersion !== 'string' ||
     typeof value.Severity !== 'string' ||
-    !SEVERITIES.has(value.Severity) ||
-    typeof value.Title !== 'string' ||
-    typeof value.PrimaryURL !== 'string'
+    !SEVERITIES.has(value.Severity)
   ) {
     throw new Error(
-      'Invalid Trivy vulnerability leaf: expected VulnerabilityID, PkgName, InstalledVersion, Severity, Title, and PrimaryURL with valid string values',
+      'Invalid Trivy vulnerability leaf: expected VulnerabilityID, PkgName, InstalledVersion, and a valid Severity as string values',
     );
   }
 
