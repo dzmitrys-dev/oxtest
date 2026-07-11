@@ -449,22 +449,19 @@ export default [
 | A2 | `stream-json@2.1.0`'s bundled TypeScript typings (`types: "./src/index.d.ts"`) are compatible with this project's strict tsconfig (`noUncheckedIndexedAccess`, `strict: true`) without needing `@types/stream-json` — not independently verified this session (types file existence was confirmed in the packed tarball listing, but type-compatibility with strict mode was not compiled/tested) | Standard Stack | Minor: a handful of `as` casts or a local `.d.ts` augmentation might be needed at implementation time if a type doesn't line up; low implementation risk, not a design risk |
 | A3 | The RSS threshold value in the memtest skeleton (180MB) is a placeholder, not a researched number — CONTEXT.md explicitly leaves this to Claude's Discretion ("derive from observed flat baseline + margin") | Code Examples | If the planner or executor copies the placeholder verbatim without deriving it from an actual measured run, the self-test could pass/fail incorrectly |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **D-08 conflicts with the correct memory-safe pipeline shape — must be resolved before/during planning.**
-   - What we know: D-08 (locked in CONTEXT.md) bans `streamValues(` in `apps/api/src/parser/**`. This research's Pattern 1 (the only verified memory-flat way to reach nested `Results[].Vulnerabilities[]` leaves without assembling a whole Result) requires `streamValues()`.
-   - What's unclear: whether the user intended a literal, unconditional ban on the token `streamValues(`, or intended to ban the *general pattern* PITFALLS.md described (which turned out to be a mischaracterization of `streamValues`).
-   - Recommendation: the planner should either (a) narrow D-08's guard to exclude `streamValues(` specifically (banning `JSON.parse`, `fs.readFile`/`readFileSync`, `.toArray(` only — these three are the actual full-buffering traps), or (b) if the user wants to keep the literal ban, use the (unverified, higher-risk) nested-Disassembler approach mentioned in Alternatives Considered instead. **Recommend (a)** — flag this explicitly to the user/discuss-phase if a checkpoint is warranted, since it changes a locked decision's literal wording (not its intent).
+1. **D-08 wording — RESOLVED.**
+   - The guard bans the actual full-materialization operations on `apps/api/src/parser/**`: `JSON.parse`, `fs.readFile`/`readFileSync`, and `Readable.toArray()`.
+   - `streamValues()` is explicitly permitted because the corrected leaf-Pick/streamValues pipeline is the verified memory-flat implementation. The guard also requires the deep `Results.<index>.Vulnerabilities.<index>` Pick path, so permitting `streamValues()` cannot silently restore the old whole-Result shape.
 
-2. **Fixture generator's severity distribution shape (even-across-Results vs. concentrated-in-one-Result) is unspecified in D-03/D-04.**
-   - What we know: D-03 says "deterministic severity mix" and D-06 requires a flat-RSS sweep across sizes.
-   - What's unclear: whether the generator should also produce (or the sweep should also test) a worst-case concentrated-Result shape, which is the shape that would expose Pitfall 1 if the wrong pipeline were used.
-   - Recommendation: add one deliberately-skewed size/shape variant to the D-04 correctness fixture or D-06 sweep as a regression guard for Pitfall 1, even though the recommended pipeline (Pattern 1) is immune to it structurally — a good regression test should still assert this property explicitly rather than relying on the pipeline choice alone.
+2. **Fixture shape — RESOLVED.**
+   - The committed correctness fixture contains multiple `Results` entries and a deliberately skewed entry with a concentrated vulnerability array, alongside mixed CRITICAL and non-CRITICAL severities.
+   - The generated memory-proof fixture defaults to the concentrated single-Result shape so the self-test exercises the former whole-Result materialization failure mode; the generator may expose an explicit distributed shape for diagnostics, but the default sweep and CI gate use the skewed shape.
 
-3. **Node 22 vs. sandbox-available Node 24 mismatch (carried over from STATE.md's existing blocker note).**
-   - What we know: `apps/api/package.json` pins `engines: ">=22 <23"`; this session's environment has Node v24.10.0 available locally; GitHub Actions' `actions/setup-node@v4` with `node-version: 22` will use real Node 22 in CI (D-09), so the CI gate itself is unaffected.
-   - What's unclear: whether local development/manual self-test runs in this sandbox (Node 24) could behave subtly differently from the pinned Node 22 runtime for `--max-old-space-size` heap sizing or `process.memoryUsage()` semantics.
-   - Recommendation: treat any local (non-CI) self-test run in this environment as a smoke test only; the authoritative pass/fail evidence is the GitHub Actions job (D-09) running actual Node 22, consistent with STATE.md's existing note that this must be reconciled before Phase 2 relies on local test runs.
+3. **Node 22 versus local Node 24 — RESOLVED.**
+   - Node 22 is authoritative because `apps/api/package.json` pins `>=22 <23` and the GitHub Actions job uses `actions/setup-node@v4` with `node-version: 22`.
+   - The authoritative command is `node --max-old-space-size=150 apps/api/dist/scripts/memtest.js <fixture-path>` after the API build. A matching local command is required and must be run when Node 22 is available; on the current Node 24 sandbox it is a smoke check only and must be labeled non-authoritative, with CI retaining the Node 22 proof.
 
 ## Environment Availability
 

@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Scan-engine feasibility probe output (generated CI artifact)
 scan-engine-feasibility.json
+
+# Take-home assignment brief — do not ship the prompt in the public submission repo
+*.pdf
+
+# Local Claude Code insights (tooling, not project content)
+.claude/insights/
