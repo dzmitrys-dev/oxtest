@@ -260,9 +260,21 @@ never counts against the worker's 200m cap.
 interpolation), so a hostile repo URL cannot inject shell metacharacters. In
 compose, the worker mounts `/var/run/docker.sock`; a root entrypoint adds the
 `node` user to the socket's runtime gid and then **drops to non-root** before
-exec'ing the app.
+exec'ing the app. The scan workdir (`/tmp/scans`) is a **named volume**, and the
+worker launches Trivy with **`docker run --volumes-from <self>`** so the sibling
+inherits that volume at the *same* path — Trivy reads the real clone and writes
+the report to the exact path the worker then reads. (`docker compose down -v`
+reclaims the volume.)
 
 **A reviewer might ask…**
+- *"The worker runs Trivy through the host socket — how does the sibling even see
+  the cloned repo?"* This is the subtle part (Docker-outside-of-Docker). Because
+  `docker run` talks to the **host** daemon, a `-v <path>` bind resolves `<path>`
+  on the **host**, not the worker's overlay — so binding the worker's clone dir
+  would mount an *empty* host path and Trivy would scan nothing. The fix is a
+  shared **named volume** propagated into the sibling via `--volumes-from`, which
+  mounts it at the identical path. No host-path translation, so no "which side is
+  this path on" class of bug, and no root-owned litter on the host.
 - *"Mounting the Docker socket gives the container Docker control — isn't that a
   privilege risk?"* **Yes, and we own it.** It is an accepted **single-tenant
   take-home trade-off**: it buys a zero-host-install reviewer experience and lean

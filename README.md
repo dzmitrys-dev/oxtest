@@ -43,8 +43,11 @@ everything on a single origin:
 The **worker** reaches the security scanner as a *sibling container* through the
 mounted Docker socket, invoking the pinned image
 `ghcr.io/aquasecurity/trivy:0.69.3` — so you do **not** install Trivy on the
-host. The worker runs under `node --max-old-space-size=150` and is capped at
-`mem_limit: 200m` (with `memswap_limit: 200m`, so the cap is a true RAM ceiling).
+host. The clone/scan workdir is a named `scans` volume shared into the sibling
+via `--volumes-from` (see ONBOARDING topic 7); reclaim it with
+`docker compose down -v`. The worker runs under `node --max-old-space-size=150`
+and is capped at `mem_limit: 200m` (with `memswap_limit: 200m`, so the cap is a
+true RAM ceiling).
 
 Configuration is by environment variable **name** only (values shown are the
 compose defaults, no secrets): `PORT`, `REDIS_HOST`, `REDIS_PORT`,
