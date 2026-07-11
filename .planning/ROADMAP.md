@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Scan Engine — Adapters, Queue, Worker & Service** - Async clone → Trivy → parse → store pipeline with clean adapters, error handling, and guaranteed cleanup (completed 2026-07-10)
 - [x] **Phase 4: Required REST API & Runtime Lifecycle** - Submit and poll scans over REST through one shared service, with health and graceful shutdown; GraphQL remains optional (completed 2026-07-10)
 - [x] **Phase 5: Packaging, Ops & Assignment Acceptance** - Docker memory hardening, correlated logging, CI-gated integration tests, and the final assignment-level end-to-end gate (completed 2026-07-10)
-- [x] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs (completed 2026-07-10)
+- [ ] **Phase 6: Optional Bonuses & Documentation** - GraphQL, React frontend, README, and ONBOARDING interview-prep docs (executed 2026-07-11; UAT pending — 12/14 auto-verified, 4 human-verification items)
 
 ## Phase Details
 
@@ -189,4 +189,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Scan Engine — Adapters, Queue, Worker & Service | 4/4 | Complete    | 2026-07-10 |
 | 4. Required REST API & Runtime Lifecycle | 3/3 | Complete    | 2026-07-10 |
 | 5. Packaging, Ops & Assignment Acceptance | 4/4 | Complete    | 2026-07-10 |
-| 6. Optional Bonuses & Documentation | 4/4 | Complete   | 2026-07-10 |
+| 6. Optional Bonuses & Documentation | 4/4 | Needs Review | UAT pending |
